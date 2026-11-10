@@ -1,0 +1,3102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12111a">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="preconnect" href="https://www.youtube.com">
+<link rel="preconnect" href="https://i.ytimg.com">
+<title>anything2gether</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mp4box@0.5.2/dist/mp4box.all.min.js"></script>
+<style>
+  /* Disposition : l'écran entier est utilisé sans défilement (vidéo + chat). Le fichier est transféré en P2P et lisible pendant la réception. */
+  :root {
+    --bg: #12111a;
+    --pa: .8;
+    --panel: rgba(27, 25, 38, var(--pa));
+    --panel-2: rgba(36, 33, 47, calc(var(--pa) + .1));
+    --bg-grad: linear-gradient(160deg, #12111a, #1f1a33, #33203a);
+    --dim: 0;
+    --line: #342f44;
+    --fg: #efecf6;
+    --muted: #9a94ad;
+    --accent: #ffb347;
+    --accent-ink: #2a1a00;
+    --peer: #5fd3c4;
+    --danger: #ff7a7a;
+    --f-display: "Unbounded", "Trebuchet MS", sans-serif;
+    --f-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; max-width: 100%; overflow-x: hidden; touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.5; overflow-x: hidden; }
+  body.in-room { overflow: hidden; overscroll-behavior: none; }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+
+  /* ---------- accueil ---------- */
+  #home { min-height: 100%; display: grid; place-items: center; padding: clamp(16px, 4vh, 32px) max(16px, env(safe-area-inset-left, 0px)); }
+  .home-wrap { width: 100%; max-width: 760px; display: grid; gap: clamp(14px, 3vh, 28px); }
+  .brand { font-family: var(--f-display); font-weight: 700; font-size: clamp(24px, 5.4vw, 42px); letter-spacing: -0.02em; line-height: 1.1; margin: 0; text-wrap: balance; }
+  .brand span { color: var(--accent); }
+  .lede { color: var(--muted); margin: 8px 0 0; max-width: 56ch; }
+  .invite { margin: 12px 0 0; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; color: var(--muted); }
+  .invite b { font-family: var(--f-display); font-weight: 500; letter-spacing: 0.16em; color: var(--accent); }
+  .linkbtn { background: none; border: 0; padding: 0; color: var(--peer); text-decoration: underline; font-size: 14px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .card h2 { font-family: var(--f-display); font-weight: 500; font-size: 16px; margin: 0; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  .field { display: grid; gap: 6px; }
+  .namefield { max-width: 320px; }
+  .field label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  input[type="text"] { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  input[type="text"]::placeholder { color: #6d6785; }
+  .code-input { font-family: var(--f-display); letter-spacing: 0.25em; text-transform: uppercase; text-align: center; font-size: 18px; }
+  .btn { border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px; padding: 10px 16px; font-weight: 700; }
+  .btn:hover { border-color: var(--muted); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.small { padding: 6px 12px; font-size: 13px; }
+  .error { color: var(--danger); font-size: 13px; min-height: 1.2em; margin: 0; }
+  .note { color: var(--muted); font-size: 13px; margin: 0; }
+  @media (max-height: 640px) { .lede, .note { display: none; } }
+
+  /* ---------- salle ---------- */
+  #room { height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+  .topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); padding-top: calc(10px + env(safe-area-inset-top, 0px)); background: var(--panel); border-bottom: 1px solid var(--line); }
+  .topbar .logo { font-family: var(--f-display); font-weight: 700; font-size: 15px; margin-right: auto; }
+  .topbar .logo span { color: var(--accent); }
+  .status { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.ok { background: var(--peer); box-shadow: 0 0 0 4px rgba(95, 211, 196, 0.18); }
+  .dot.wait { background: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+  .roomcode { display: inline-flex; align-items: center; gap: 8px; }
+  .roomcode b { font-family: var(--f-display); font-weight: 500; letter-spacing: 0.18em; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; }
+
+  .layout { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) var(--chatw, clamp(260px, 26vw, 340px)); grid-template-rows: minmax(0, 1fr); min-height: 0; min-width: 0; background: transparent; isolation: isolate; }
+  .layout.nochat { grid-template-columns: minmax(0, 1fr); }
+  .layout.nochat .chat { display: none; }
+  .stage-col { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto auto; min-height: 0; min-width: 0; }
+  .stage { position: relative; background: #000; min-height: 0; overflow: hidden; }
+  video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: block; transform-origin: center; }
+  /* Plyr : le lecteur remplit la scène (même place que l'ancienne vidéo) */
+  .stage .plyr { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; --plyr-color-main: var(--accent); --plyr-font-family: var(--f-body); }
+  .stage .plyr__video-wrapper { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .drop { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; background: radial-gradient(ellipse at 50% 40%, #2a2338 0%, #0d0c13 70%); z-index: 1; }
+  .drop-inner { display: grid; gap: 14px; justify-items: center; max-width: 440px; width: 100%; }
+  .drop h2 { font-family: var(--f-display); font-weight: 500; font-size: 18px; margin: 0; text-wrap: balance; }
+  .drop p { margin: 0; color: var(--muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .stage.dragover .drop { outline: 2px dashed var(--accent); outline-offset: -14px; }
+  progress { width: 100%; height: 10px; accent-color: var(--accent); }
+  .toast { position: absolute; left: 16px; top: 16px; max-width: min(70%, 420px); background: rgba(18, 17, 26, 0.88); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 14px; pointer-events: none; z-index: 3; overflow-wrap: anywhere; }
+  .toast b { color: var(--peer); }
+  .tap { position: absolute; z-index: 4; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, 0.55); }
+  /* barre du haut en plein écran : petite flèche fixe ; les boutons descendent de derrière elle puis y remontent */
+  .fsbar { display: none; position: absolute; top: 8px; right: 10px; z-index: 6; flex-direction: column; align-items: flex-end; gap: 6px; max-width: calc(100% - 20px); pointer-events: none; }
+  .fsbar > * { pointer-events: auto; }
+  .fstab { position: relative; z-index: 2; width: 34px; height: 20px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: rgba(18, 17, 26, 0.6); color: #fff; opacity: 0.55; cursor: pointer; transition: opacity .25s ease, background .25s ease; -webkit-tap-highlight-color: transparent; }
+  .fstab:hover, .fsbar:not(.hide) .fstab { opacity: 1; background: rgba(18, 17, 26, 0.85); }
+  .fstab svg { width: 14px; height: 14px; transition: transform .3s ease; }
+  .fsbar:not(.hide) .fstab svg { transform: rotate(180deg); }
+  .fsmenu { position: relative; z-index: 1; display: grid; gap: 6px; justify-items: end; max-width: 100%; transform-origin: top right; transition: transform .3s cubic-bezier(.2, .8, .2, 1), opacity .25s ease, visibility 0s linear 0s; }
+  .fsbar.hide .fsmenu { transform: translateY(-22px) scale(.9); opacity: 0; visibility: hidden; pointer-events: none; transition: transform .3s cubic-bezier(.4, 0, 1, 1), opacity .25s ease, visibility 0s linear .3s; }
+  .fsbtns { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+  .fsbar .btn { background: rgba(18, 17, 26, 0.78); padding: 6px 12px; font-size: 13px; }
+  @media (max-width: 860px) { .fsbar .btn { padding: 5px 10px; font-size: 12px; } }
+  @media (prefers-reduced-motion: reduce) { .fsmenu, .fsbar.hide .fsmenu, .fstab svg { transition-duration: .01s; } }
+
+  .filebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px max(16px, env(safe-area-inset-left, 0px)); background: var(--panel); border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  .filebar .fname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 140px; color: var(--fg); }
+  .xfer { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .sizebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px max(16px, env(safe-area-inset-left, 0px)); background: var(--panel); border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  .sizeopt { display: inline-flex; align-items: center; gap: 6px; }
+  .sizeopt select { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font-size: 13px; }
+  .sizeopt input[type="range"] { width: 90px; accent-color: var(--accent); }
+  .only-mobile { display: none; }
+  .fixed-info { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+  .fixed-info[hidden] { display: none; }
+  .fixed-row { display: flex; gap: 8px; align-items: center; }
+  .fixed-row input { flex: 1; min-width: 0; }
+
+  /* file d'attente (hôte uniquement) */
+  .qpanel { position: absolute; left: 10px; top: 10px; z-index: 7; width: min(460px, calc(100% - 20px)); max-height: calc(100% - 20px); display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgba(18, 17, 26, 0.96); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .qhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .qhead b { margin-right: auto; font-family: var(--f-display); font-weight: 500; font-size: 13px; }
+  .qlist { list-style: none; margin: 0; padding: 6px; overflow-y: auto; display: grid; gap: 4px; align-content: start; min-height: 0; }
+  .qitem { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--panel-2); border-radius: 8px; font-size: 13px; }
+  .qitem .qn { color: var(--accent); font-variant-numeric: tabular-nums; flex: none; min-width: 1.4em; }
+  .qitem .qname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .qitem .qsize { color: var(--muted); font-size: 12px; flex: none; }
+  .qitem button { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; font-size: 13px; flex: none; min-height: 28px; }
+  .qitem button:hover { border-color: var(--muted); }
+  .qempty { padding: 14px; color: var(--muted); font-size: 13px; margin: 0; }
+
+  /* plein écran : vidéo + chat restent visibles */
+  .layout.fs .fsbar { display: flex; }
+  .layout.fs .filebar { display: none; }
+  /* quand toute la salle (vidéo + chat) est en plein écran, le bouton plein écran du lecteur est masqué : on utilise « Quitter » */
+  .layout.fs .plyr [data-plyr="fullscreen"] { display: none; }
+  /* bouton de qualité intégré à la barre du lecteur */
+  .q-menu .q-btn { padding: 4px 6px; }
+  .q-btn .q-cur { font-size: 11px; font-weight: 700; line-height: 1; padding: 3px 5px; border: 1.5px solid currentColor; border-radius: 5px; letter-spacing: .2px; white-space: nowrap; }
+  .q-pop { min-width: 0; width: max-content; max-height: 70vh; overflow-y: auto; }
+  .q-pop .q-list { padding: 2px 0; }
+  .q-pop .plyr__control { padding: 4px 10px; font-size: 12px; min-height: 0; }
+  .q-title { padding: 5px 10px 2px; font-size: 10px; opacity: .65; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+  .q-sep { margin-top: 2px; border-top: 1px solid rgba(128,128,128,.3); padding-top: 6px; }
+  .q-peer { display: flex; justify-content: space-between; gap: 14px; padding: 3px 10px; font-size: 12px; white-space: nowrap; }
+  .q-peer .q-pn { max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+  .q-peer .q-pq { opacity: .75; font-variant-numeric: tabular-nums; }
+  .q-menu .plyr__control[disabled] { opacity: .4; cursor: not-allowed; }
+  /* en plein écran, la barre taille/zoom devient un panneau flottant sous les boutons du haut */
+  .layout.fs .sizebar.fs-panel { display: none; position: static; max-width: 100%; border: 1px solid var(--line); border-radius: 12px; background: rgba(18, 17, 26, 0.92); padding: 10px 12px; }
+  .layout.fs .sizebar.fs-panel.open { display: flex; }
+  .sizebar.fs-panel #btn-chat { display: none; }
+  .layout.pfs { position: fixed; inset: 0; z-index: 100; height: 100vh; height: 100dvh; padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+
+  /* chat */
+  .chat { position: relative; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; background: var(--panel); border-left: 1px solid var(--line); min-height: 0; min-width: 0; }
+  .chat h3 { margin: 0; padding: 12px 16px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); }
+  .msgs { overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  .typing { min-height: 22px; padding: 2px 16px 0; font-size: 12px; font-style: italic; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .msg { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+  .msg .who { font-size: 12px; font-weight: 700; color: var(--peer); }
+  .msg.me .who { color: var(--accent); }
+  .msg.sys { color: var(--muted); font-size: 13px; font-style: italic; }
+  .msg.cont { margin-top: -7px; }
+  .msg.big .txt { font-size: 30px; line-height: 1.2; }
+  .send { position: relative; display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .send input { flex: 1; min-width: 0; }
+  .emoji-btn { padding: 8px 12px; font-size: 18px; line-height: 1; }
+  .picker { position: absolute; left: 0; right: 0; bottom: 100%; background: #24212f; border-top: 1px solid var(--line); z-index: 5; display: grid; }
+  .ptabs { display: flex; gap: 4px; padding: 6px 10px 0; }
+  .ptabs button { background: none; border: 0; border-bottom: 2px solid transparent; font-size: 20px; padding: 4px 10px; }
+  .ptabs button.on { border-bottom-color: var(--accent); }
+  .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); gap: 2px; padding: 8px 10px 10px; max-height: 168px; overflow-y: auto; }
+  .pgrid button { background: none; border: 0; border-radius: 8px; font-size: 24px; line-height: 1; padding: 8px 0; }
+  .pgrid button:hover, .pgrid button:active { background: var(--line); }
+
+  /* téléphone, portrait */
+  @media (max-width: 860px) {
+    body { font-size: 16px; }
+    input[type="text"] { font-size: 16px; }
+    .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, calc(100% - var(--chath, 36%))) minmax(0, var(--chath, 36%)); }
+    .layout.nochat { grid-template-rows: minmax(0, 1fr); }
+    .chat { border-left: 0; border-top: 1px solid var(--line); }
+    .topbar { flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; padding-bottom: 6px; padding-top: calc(6px + env(safe-area-inset-top, 0px)); min-width: 0; }
+    .topbar .logo { display: none; }
+    .roomcode { gap: 6px; min-width: 0; font-size: 13px; }
+    .roomcode b { padding: 2px 8px; font-size: 12px; letter-spacing: 0.12em; }
+    .status { min-width: 0; font-size: 12px; }
+    .status span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .filebar { flex-wrap: nowrap; overflow-x: auto; gap: 8px; padding-top: 6px; padding-bottom: 6px; scrollbar-width: none; }
+    .filebar::-webkit-scrollbar { display: none; }
+    .filebar .fname { display: none; }
+    .filebar .btn, .sizebar .btn { flex: none; white-space: nowrap; min-height: 38px; }
+    .only-mobile { display: inline-block; }
+    .sizebar { display: none; }
+    .sizebar.show { display: flex; }
+    .sizebar select { min-height: 36px; }
+    .sizebar input[type="range"] { width: 120px; }
+    .emoji-btn, .send .btn { min-height: 42px; }
+    .send input { min-height: 42px; }
+    .msgs { padding: 8px 12px; gap: 8px; }
+    .pgrid { max-height: 140px; }
+  }
+  /* téléphone, paysage */
+  @media (max-width: 950px) and (orientation: landscape) and (max-height: 520px) {
+    .layout { grid-template-columns: minmax(0, 1fr) var(--chatw-l, 240px); grid-template-rows: minmax(0, 1fr); }
+    .layout.nochat { grid-template-columns: minmax(0, 1fr); }
+    .chat { border-top: 0; border-left: 1px solid var(--line); }
+    .topbar { display: none; }
+    #room { grid-template-rows: minmax(0, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) { .dot.wait { animation: none; } }
+
+  /* ---------- clavier du téléphone ----------
+     La salle suit la zone réellement visible (visualViewport) : quand le clavier s'ouvre, elle rétrécit au lieu d'être recouverte.
+     La vidéo reste en haut ; la barre du haut et les boutons disparaissent le temps de la saisie pour laisser la place au chat. */
+  body.in-room #room { position: fixed; left: 0; top: var(--vvt, 0px); width: 100%; height: calc(var(--vvh, 100dvh) - var(--kbpad, 0px)); }
+  .layout.pfs { top: var(--vvt, 0px); bottom: auto; height: calc(var(--vvh, 100dvh) - var(--kbpad, 0px)); }
+  /* plein écran réel (le navigateur impose la hauteur de l'écran) : on réserve en bas la place du clavier, la vidéo et le chat rétrécissent au-dessus */
+  .layout.fs:not(.pfs) { padding-bottom: max(var(--kbov, 0px), var(--kbpad, 0px)); }
+  .tmodal { top: var(--vvt, 0px); bottom: auto; height: calc(var(--vvh, 100vh) - var(--kbpad, 0px)); }
+  @media (max-width: 860px) and (orientation: portrait) {
+    body.kb .topbar, body.kb .filebar, body.kb .sizebar { display: none; }
+    body.kb #room { grid-template-rows: minmax(0, 1fr); }
+    body.kb .layout:not(.nochat) { grid-template-rows: minmax(0, 40%) minmax(0, 60%); }
+    body.kb .chat h3 { padding: 4px 16px; }
+    body.kb .send { padding-top: 8px; padding-bottom: 8px; }
+  }
+
+  /* ---------- thème : fond (dégradé + image) ---------- */
+  .bgl { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: var(--bg-grad); }
+  .bgl.in-layout { position: absolute; z-index: -1; display: none; }
+  .layout.fs .bgl.in-layout { display: block; }
+  .bgl .wp { position: absolute; inset: 0; background-position: center; background-repeat: no-repeat; background-size: cover; }
+  .bgl .dim { position: absolute; inset: 0; background: #000; opacity: var(--dim); }
+  #home, #room { position: relative; z-index: 1; }
+  .topbar, .filebar, .sizebar, .chat, .card, .invite { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .brand, .lede, .note { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55); }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+  .home-theme { position: absolute; z-index: 2; top: calc(10px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); }
+
+  .tmodal { position: fixed; inset: 0; z-index: 300; display: grid; align-items: end; justify-items: center; background: rgba(0, 0, 0, 0.28); }
+  .tsheet { width: min(560px, 100%); max-height: 80vh; max-height: 80dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); background: #1b1926; border: 1px solid var(--line); border-bottom: 0; border-radius: 16px 16px 0 0; overflow: hidden; }
+  .thead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .thead b { font-family: var(--f-display); font-weight: 500; font-size: 15px; }
+  .tbody { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 18px; align-content: start; min-height: 0; }
+  .tsec { display: grid; gap: 10px; min-width: 0; }
+  .tsec h4 { margin: 0; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .tprev { height: 44px; border-radius: 10px; border: 1px solid var(--line); }
+  .tpresets { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+  .tpreset { height: 56px; border-radius: 10px; border: 2px solid transparent; color: #fff; font-size: 12px; font-weight: 700; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75); display: flex; align-items: flex-end; padding: 6px 8px; text-align: left; }
+  .tpreset.on { border-color: #fff; }
+  .tcolors { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .tcolors label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+  input[type="color"] { width: 100%; height: 42px; padding: 2px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+  .trange { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; font-size: 13px; color: var(--muted); }
+  .trange input[type="range"] { grid-column: 1 / -1; width: 100%; min-height: 28px; accent-color: var(--accent); }
+  .trow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .tsel { background: #24212f; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 14px; min-height: 36px; }
+  .tmsg { margin: 0; color: var(--muted); font-size: 13px; min-height: 1.2em; }
+  .tchk { display: flex; gap: 10px; align-items: center; font-size: 14px; }
+  .tchk input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+  #yt { position: absolute; inset: 0; z-index: 2; background: #000; transform-origin: center; }
+  #yt iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .tsec label.lbl { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  @media (min-width: 861px) { .tmodal { align-items: center; } .tsheet { border-radius: 16px; border-bottom: 1px solid var(--line); } }
+  @media (max-width: 860px) { .tsheet .btn { min-height: 40px; } }
+
+  /* plein écran simulé tenu en portrait (le système n'a pas pivoté) : toute la salle pivote de 90° pour remplir l'écran.
+     Activé par le script (classe « rot »), pas par une media query, pour ne pas basculer quand le clavier change la hauteur. */
+  .layout.rot {
+    position: fixed !important;
+    top: 0 !important; left: 0 !important; right: auto !important; bottom: auto !important;
+    width: 100vh !important; height: 100vw !important;
+    width: 100dvh !important; height: 100dvw !important;
+    padding: 0 !important;
+    transform-origin: top left;
+    transform: translateX(100vw) rotate(90deg);
+    grid-template-columns: minmax(0, 1fr) var(--chatw-l, 240px);
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .layout.rot.nochat { grid-template-columns: minmax(0, 1fr); }
+
+  /* taille de la zone de chat (bouton « Chat : … ») : 0 petit · 1 moyen (défaut) · 2 grand · 3 très grand
+     --chatw : largeur à côté de la vidéo · --chath : hauteur en portrait téléphone · --chatw-l : largeur en paysage téléphone */
+  .layout[data-chat="0"] { --chatw: clamp(200px, 18vw, 240px); --chath: 24%; --chatw-l: 170px; }
+  .layout[data-chat="2"] { --chatw: clamp(340px, 38vw, 520px); --chath: 50%; --chatw-l: 340px; }
+  .layout[data-chat="3"] { --chatw: clamp(420px, 52vw, 760px); --chath: 64%; --chatw-l: 48vw; }
+  .layout.rot .chat { border-top: 0; border-left: 1px solid var(--line); }
+</style>
+</head>
+<body>
+
+<div class="bgl" id="bg" aria-hidden="true"><div class="wp"></div><div class="dim"></div></div>
+
+<main id="home">
+  <button class="btn small home-theme" id="home-theme" type="button">🎨 Thème</button>
+  <div class="home-wrap">
+    <div>
+      <h1 class="brand">anything<span>2</span>gether</h1>
+      <p class="lede" id="lede">Regardez un film ensemble. Un seul de vous a le fichier : il est envoyé directement à l'autre (P2P, sans serveur) et peut être regardé pendant qu'il arrive, en qualité d'origine, avec lecture et pause synchronisées et un chat à côté.</p>
+      <p class="invite" id="invite" hidden>Tu es invité dans la salle <b id="invite-code"></b>. <button class="linkbtn" id="invite-own" type="button">Créer ma propre salle</button></p>
+    </div>
+
+    <div class="field namefield">
+      <label for="name" id="name-label">Ton prénom</label>
+      <input type="text" id="name" maxlength="20" placeholder="Ex. Achraf" autocomplete="off" autocapitalize="words">
+    </div>
+
+    <div class="cards" id="cards">
+      <section class="card" id="card-create">
+        <h2>Créer une salle</h2>
+        <p>Tu obtiens un code à 6 caractères à envoyer à ton ami.</p>
+        <label class="tchk" for="fixed-code"><input type="checkbox" id="fixed-code"> Garder toujours le même code</label>
+        <div class="fixed-info" id="fixed-info" hidden>
+          <label for="fixed-val">Ton code (6 lettres ou chiffres, modifiable)</label>
+          <div class="fixed-row">
+            <input type="text" id="fixed-val" class="code-input" maxlength="6" placeholder="MONCOD" autocomplete="off" autocapitalize="characters" spellcheck="false">
+            <button class="btn small" id="fixed-new" type="button">Aléatoire</button>
+          </div>
+        </div>
+        <button class="btn primary" id="btn-create" type="button">Créer la salle</button>
+      </section>
+      <section class="card" id="card-join">
+        <h2 id="join-title">Rejoindre une salle</h2>
+        <div class="field" id="field-code">
+          <label for="code">Code de la salle</label>
+          <input type="text" id="code" class="code-input" maxlength="6" placeholder="K7M2QX" autocomplete="off" spellcheck="false">
+        </div>
+        <button class="btn primary" id="btn-join" type="button">Rejoindre</button>
+      </section>
+    </div>
+    <p class="error" id="home-error" role="alert"></p>
+    <p class="note" id="note">Dans la salle, celui qui possède la vidéo la choisit. Pour un MP4, l'autre peut lancer la lecture après quelques secondes. Pour les autres formats, il faut attendre la fin du transfert. Gardez l'onglet ouvert.</p>
+  </div>
+</main>
+
+<div id="room" hidden>
+  <header class="topbar">
+    <div class="logo">anything<span>2</span>gether</div>
+    <div class="roomcode">Salle <b id="room-code">------</b>
+      <button class="btn small" id="btn-copy" type="button">Copier le lien</button>
+    </div>
+    <div class="status"><span class="dot wait" id="dot"></span><span id="status-text">En attente d'un ami…</span></div>
+  </header>
+
+  <div class="layout" id="layout">
+    <div class="bgl in-layout" id="bgfs" aria-hidden="true"><div class="wp"></div><div class="dim"></div></div>
+    <div class="stage-col">
+      <div class="stage" id="stage">
+        <video id="video" playsinline controls></video>
+
+        <div id="yt" hidden></div>
+
+        <div class="drop" id="drop">
+          <div class="drop-inner">
+            <h2 id="drop-title">Tu as le fichier ? Glisse-le ici</h2>
+            <p id="drop-text">Il sera envoyé à ton ami, qui pourra le regarder pendant la réception. Si c'est lui qui l'a, attends qu'il le choisisse.</p>
+            <progress id="prog" max="100" value="0" hidden></progress>
+            <button class="btn primary" id="btn-pick" type="button">Choisir un fichier vidéo</button>
+            <button class="btn" id="btn-yt-drop" type="button">▶ Lire un lien YouTube</button>
+          </div>
+        </div>
+
+        <div class="toast" id="toast" hidden></div>
+        <div class="qpanel" id="qpanel" hidden>
+          <div class="qhead">
+            <b id="qtitle">File d'attente</b>
+            <button class="btn small primary" id="q-add" type="button">Ajouter des vidéos</button>
+            <button class="btn small" id="q-clear" type="button">Vider</button>
+            <button class="btn small" id="q-close" type="button">Fermer</button>
+          </div>
+          <ul class="qlist" id="qlist"></ul>
+        </div>
+        <div class="tap" id="tap" hidden>
+          <button class="btn primary" id="btn-tap" type="button">Appuie pour lancer la lecture</button>
+        </div>
+        <div class="fsbar" id="fsbar">
+          <button class="fstab" id="fs-tab" type="button" aria-label="Menu" aria-expanded="true" aria-controls="fsmenu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+          <div class="fsmenu" id="fsmenu">
+            <div class="fsbtns">
+              <button class="btn" id="fs-size" type="button">Taille</button>
+              <button class="btn" id="fs-chat" type="button">Masquer le chat</button>
+              <button class="btn" id="fs-queue" type="button" hidden>File d'attente</button>
+              <button class="btn" id="fs-exit" type="button">Quitter</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="filebar">
+        <span class="fname" id="fname">Aucune vidéo pour l'instant</span>
+        <span class="xfer" id="xfer" hidden></span>
+        <button class="btn small only-mobile" id="btn-opts" type="button">Taille</button>
+        <button class="btn small" id="btn-sync" type="button" title="Envoie ta position à tout le monde">Synchroniser</button>
+        <button class="btn small" id="btn-queue" type="button" hidden>File d'attente</button>
+        <button class="btn small" id="btn-change" type="button">Envoyer une vidéo</button>
+        <button class="btn small" id="btn-yt" type="button">▶ YouTube</button>
+        <button class="btn small" id="btn-theme" type="button">🎨 Thème</button>
+        <button class="btn small" id="btn-sub" type="button">Sous-titres</button>
+        <button class="btn small" id="btn-full" type="button">Plein écran</button>
+        <input type="file" id="file" accept="video/*,.mkv" hidden>
+        <input type="file" id="subfile" accept=".srt,.vtt" hidden>
+        <input type="file" id="qfile" accept="video/*,.mkv" multiple hidden>
+      </div>
+      <div class="sizebar" id="sizebar">
+        <label class="sizeopt" for="fit">Taille
+          <select id="fit">
+            <option value="contain">Ajuster (tout voir)</option>
+            <option value="cover">Remplir (rogne les bords)</option>
+            <option value="fill">Étirer</option>
+          </select>
+        </label>
+        <label class="sizeopt" for="zoom">Zoom
+          <input type="range" id="zoom" min="50" max="200" value="100" step="5">
+          <span id="zoom-val">100 %</span>
+        </label>
+        <label class="sizeopt" for="chatsize">Chat
+          <select id="chatsize">
+            <option value="0">Petit</option>
+            <option value="1">Moyen</option>
+            <option value="2">Grand</option>
+            <option value="3">Très grand</option>
+          </select>
+        </label>
+        <button class="btn small" id="btn-chat" type="button">Masquer le chat</button>
+      </div>
+    </div>
+
+    <aside class="chat">
+      <h3>Discussion</h3>
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+      <div class="typing" id="typing"></div>
+      <form class="send" id="send" autocomplete="off">
+        <div class="picker" id="picker" hidden>
+          <div class="ptabs" id="ptabs"></div>
+          <div class="pgrid" id="pgrid"></div>
+        </div>
+        <button class="btn emoji-btn" id="btn-emoji" type="button" aria-label="Emotes">😊</button>
+        <input type="text" id="msg" maxlength="500" placeholder="Écrire un message…">
+        <button class="btn primary" type="submit">Envoyer</button>
+      </form>
+    </aside>
+  </div>
+</div>
+
+<div class="tmodal" id="ytmodal" hidden>
+  <div class="tsheet" role="dialog" aria-modal="true" aria-labelledby="yt-title">
+    <div class="thead"><b id="yt-title">Vidéo YouTube</b><button class="btn small" id="yt-cancel" type="button">Fermer</button></div>
+    <div class="tbody">
+      <div class="tsec">
+        <label class="lbl" for="yt-url">Lien de la vidéo</label>
+        <input type="text" id="yt-url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url">
+        <p class="error" id="yt-err" role="alert"></p>
+        <div class="trow">
+          <button class="btn primary" id="yt-go" type="button">Lire pour tous</button>
+          <button class="btn" id="yt-stop" type="button" hidden>Arrêter YouTube</button>
+        </div>
+        <p class="tmsg">Chacun lit la vidéo directement depuis YouTube (rien n'est envoyé entre vous) : c'est fluide et en haute qualité. Lecture, pause et avance sont synchronisées. Le lien peut venir de youtube.com, youtu.be ou d'un lien « Partager » avec le temps de départ.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tmodal" id="tmodal" hidden>
+  <div class="tsheet" role="dialog" aria-modal="true" aria-labelledby="t-title">
+    <div class="thead"><b id="t-title">Thème</b><button class="btn small primary" id="t-close" type="button">Terminé</button></div>
+    <div class="tbody">
+      <div class="tsec">
+        <div class="tprev" id="t-prev"></div>
+        <h4>Modèles</h4>
+        <div class="tpresets" id="t-presets"></div>
+      </div>
+      <div class="tsec">
+        <h4>Mes couleurs (dégradé)</h4>
+        <div class="tcolors">
+          <label>Couleur 1<input type="color" id="t-c0"></label>
+          <label>Couleur 2<input type="color" id="t-c1"></label>
+          <label>Couleur 3<input type="color" id="t-c2"></label>
+          <label>Accent<input type="color" id="t-ac"></label>
+        </div>
+        <div class="trange"><label for="t-ang">Angle du dégradé</label><span id="t-ang-v"></span><input type="range" id="t-ang" min="0" max="360" step="5"></div>
+      </div>
+      <div class="tsec">
+        <h4>Fond d'écran</h4>
+        <div class="trow">
+          <button class="btn small primary" id="t-pick" type="button">Choisir une image</button>
+          <button class="btn small" id="t-nowp" type="button">Retirer l'image</button>
+          <select class="tsel" id="t-fit" aria-label="Affichage de l'image"><option value="cover">Remplir l'écran</option><option value="stretch">Étirer</option></select>
+        </div>
+        <div class="trange"><label for="t-dim">Assombrir le fond</label><span id="t-dim-v"></span><input type="range" id="t-dim" min="0" max="85" step="5"></div>
+        <div class="trange"><label for="t-pa">Opacité des panneaux</label><span id="t-pa-v"></span><input type="range" id="t-pa" min="40" max="100" step="5"></div>
+        <input type="file" id="t-file" accept="image/*" hidden>
+      </div>
+      <div class="tsec">
+        <p class="tmsg" id="t-msg">Le thème de la salle est celui de l'hôte : ses couleurs et son fond d'écran sont appliqués chez tous les amis et enregistrés sur leur appareil. Les amis ne peuvent pas le modifier pendant la session.</p>
+        <div class="trow"><button class="btn small" id="t-reset" type="button">Tout réinitialiser</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var KEY = "samaraf-theme", WPKEY = "samaraf-wp";
+  var PRESETS = [
+    { n: "Nuit", c: ["#12111a", "#1f1a33", "#33203a"], a: 160, ac: "#ffb347", d: 0 },
+    { n: "Coucher de soleil", c: ["#2b1055", "#c0392b", "#ff9a3c"], a: 160, ac: "#ffd166", d: 25 },
+    { n: "Océan", c: ["#021b2e", "#0b4f6c", "#20a4a8"], a: 170, ac: "#7ee8d4", d: 10 },
+    { n: "Aurore", c: ["#0f2027", "#2c5364", "#7b2ff7"], a: 150, ac: "#5fd3c4", d: 10 },
+    { n: "Forêt", c: ["#0b1a12", "#1e4d2b", "#7a9e3a"], a: 165, ac: "#c8f26b", d: 15 },
+    { n: "Rose néon", c: ["#1a0a2e", "#7a1fa2", "#ff3d81"], a: 155, ac: "#ff8fb8", d: 15 },
+    { n: "Braise", c: ["#140806", "#5c1a0b", "#d9480f"], a: 165, ac: "#ffb347", d: 10 },
+    { n: "Minuit", c: ["#05060f", "#10204a", "#3a2a7a"], a: 160, ac: "#8ab4ff", d: 0 }
+  ];
+  var DEF = { c: PRESETS[0].c.slice(), a: PRESETS[0].a, ac: PRESETS[0].ac, d: 0, p: 80, fit: "cover", ts: 0, wpId: "", sync: true };
+  var theme = JSON.parse(JSON.stringify(DEF)), wp = null, opener = null;
+  var wpHave = "", send = null, getConns = function () { return []; }, notifyFn = null, amHost = function () { return false; }, pushT = null, wpBuf = null;
+  var sendingWp = false, queuedWp = false, lastNote = 0, lastSent = { id: "", at: 0 }, CH = 30000;
+
+  function isHex(s) { return typeof s === "string" && /^#[0-9a-f]{6}$/i.test(s); }
+  function clamp(v, a, b, def) { v = +v; return isFinite(v) ? Math.min(b, Math.max(a, v)) : def; }
+  function ink(hex) {
+    var n = parseInt(hex.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? "#2a1a00" : "#ffffff";
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var t = JSON.parse(raw);
+        if (t && Array.isArray(t.c) && t.c.length >= 3 && t.c.slice(0, 3).every(isHex)) theme.c = t.c.slice(0, 3);
+        theme.a = clamp(t.a, 0, 360, DEF.a);
+        if (isHex(t.ac)) theme.ac = t.ac;
+        theme.d = clamp(t.d, 0, 85, 0);
+        theme.p = clamp(t.p, 40, 100, 80);
+        theme.fit = t.fit === "stretch" ? "stretch" : "cover";
+        theme.ts = clamp(t.ts, 0, 9e15, 0);
+        theme.wpId = (typeof t.wpId === "string" && /^[\w-]{1,32}$/.test(t.wpId)) ? t.wpId : "";
+        theme.sync = true;
+      }
+    } catch (e) {}
+    try { wp = localStorage.getItem(WPKEY) || null; if (wp && wp.indexOf("data:image/") !== 0) wp = null; } catch (e) { wp = null; }
+    if (wp && !theme.wpId) theme.wpId = newId();
+    if (!wp) theme.wpId = "";
+    wpHave = wp ? theme.wpId : "";
+  }
+  // un ami connecté à une salle ne peut pas changer le thème : c'est celui de l'hôte
+  function locked() { return !amHost() && getConns().length > 0; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(theme)); } catch (e) {} }
+
+  function apply() {
+    var r = document.documentElement.style, c = theme.c;
+    var grad = "linear-gradient(" + theme.a + "deg," + c[0] + "," + c[1] + "," + c[2] + ")";
+    r.setProperty("--bg-grad", grad);
+    r.setProperty("--accent", theme.ac);
+    r.setProperty("--accent-ink", ink(theme.ac));
+    r.setProperty("--pa", String(theme.p / 100));
+    r.setProperty("--dim", String(theme.d / 100));
+    [$("bg"), $("bgfs")].forEach(function (el) {
+      if (!el) return;
+      var w = el.querySelector(".wp");
+      w.style.backgroundImage = wp ? 'url("' + wp + '")' : "none";
+      w.style.backgroundSize = theme.fit === "stretch" ? "100% 100%" : "cover";
+    });
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute("content", c[0]);
+    $("t-prev").style.background = grad;
+  }
+  function syncUI() {
+    ["t-c0", "t-c1", "t-c2"].forEach(function (id, i) { $(id).value = theme.c[i]; });
+    $("t-ac").value = theme.ac;
+    $("t-ang").value = theme.a; $("t-ang-v").textContent = theme.a + "°";
+    $("t-dim").value = theme.d; $("t-dim-v").textContent = theme.d + " %";
+    $("t-pa").value = theme.p; $("t-pa-v").textContent = theme.p + " %";
+    $("t-fit").value = theme.fit;
+    Array.prototype.forEach.call($("t-presets").children, function (b, i) {
+      b.classList.toggle("on", PRESETS[i].c.join() === theme.c.join() && PRESETS[i].a === theme.a);
+    });
+    var lk = locked();
+    Array.prototype.forEach.call($("tmodal").querySelectorAll("input,select,button"), function (el) { if (el.id !== "t-close") el.disabled = lk; });
+    $("t-nowp").disabled = lk || !wp;
+    if (lk) say("Le thème est choisi par l'hôte de la salle.");
+  }
+  // changement fait par moi : date mise à jour, puis envoyé à l'ami (regroupé pour ne pas inonder le canal pendant un glissement de curseur)
+  function commit() { if (locked()) return; theme.ts = Date.now(); apply(); save(); syncUI(); pushTheme(); }
+  function say(t) { $("t-msg").textContent = t; }
+
+  /* ---------- fond d'écran : réduit pour le téléphone, puis enregistré ---------- */
+  function loadImage(file) {
+    return new Promise(function (res, rej) {
+      var u = URL.createObjectURL(file), im = new Image();
+      im.onload = function () { URL.revokeObjectURL(u); res(im); };
+      im.onerror = function () { URL.revokeObjectURL(u); rej(new Error("img")); };
+      im.src = u;
+    });
+  }
+  function shrink(im, max, q) {
+    var w = im.naturalWidth, h = im.naturalHeight, s = Math.min(1, max / Math.max(w, h));
+    var cv = document.createElement("canvas");
+    cv.width = Math.max(1, Math.round(w * s)); cv.height = Math.max(1, Math.round(h * s));
+    var x = cv.getContext("2d");
+    x.fillStyle = "#000"; x.fillRect(0, 0, cv.width, cv.height);
+    x.drawImage(im, 0, 0, cv.width, cv.height);
+    return cv.toDataURL("image/jpeg", q);
+  }
+  function setWallpaper(file) {
+    if (!file || locked()) return;
+    say("Préparation de l'image…");
+    loadImage(file).then(function (im) {
+      var tries = [[1440, 0.75], [1080, 0.65], [800, 0.55]], data = null, stored = false;
+      for (var i = 0; i < tries.length && !stored; i++) {
+        data = shrink(im, tries[i][0], tries[i][1]);
+        try { localStorage.setItem(WPKEY, data); stored = true; } catch (e) {}
+      }
+      if (!stored) { try { localStorage.removeItem(WPKEY); } catch (e) {} }
+      wp = data; theme.wpId = newId(); wpHave = theme.wpId;
+      if (theme.d < 25) theme.d = 35;
+      commit();
+      say(stored ? "Fond d'écran enregistré sur cet appareil." : "Image trop lourde pour être enregistrée : elle ne sera gardée que jusqu'à la fermeture de la page.");
+    }, function () { say("Image illisible. Essaie un fichier JPG ou PNG."); });
+  }
+
+  /* ---------- interface ---------- */
+  PRESETS.forEach(function (p) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "tpreset"; b.textContent = p.n;
+    b.style.background = "linear-gradient(" + p.a + "deg," + p.c.join(",") + ")";
+    b.addEventListener("click", function () {
+      theme.c = p.c.slice(); theme.a = p.a; theme.ac = p.ac;
+      if (!wp) theme.d = p.d;
+      commit();
+    });
+    $("t-presets").appendChild(b);
+  });
+  ["t-c0", "t-c1", "t-c2"].forEach(function (id, i) {
+    $(id).addEventListener("input", function () { theme.c[i] = this.value; commit(); });
+  });
+  $("t-ac").addEventListener("input", function () { theme.ac = this.value; commit(); });
+  $("t-ang").addEventListener("input", function () { theme.a = clamp(this.value, 0, 360, 160); commit(); });
+  $("t-dim").addEventListener("input", function () { theme.d = clamp(this.value, 0, 85, 0); commit(); });
+  $("t-pa").addEventListener("input", function () { theme.p = clamp(this.value, 40, 100, 80); commit(); });
+  $("t-fit").addEventListener("change", function () { theme.fit = this.value === "stretch" ? "stretch" : "cover"; commit(); });
+  $("t-pick").addEventListener("click", function () { $("t-file").click(); });
+  $("t-file").addEventListener("change", function (e) { setWallpaper(e.target.files[0]); e.target.value = ""; });
+  $("t-nowp").addEventListener("click", function () {
+    if (locked()) return;
+    wp = null;
+    try { localStorage.removeItem(WPKEY); } catch (e) {}
+    theme.wpId = ""; wpHave = ""; commit(); say("Image retirée.");
+  });
+  $("t-reset").addEventListener("click", function () {
+    if (locked()) return;
+    var keep = theme.sync; theme = JSON.parse(JSON.stringify(DEF)); theme.sync = keep; wp = null; wpHave = "";
+    try { localStorage.removeItem(WPKEY); } catch (e) {}
+    commit(); say("Thème d'origine rétabli.");
+  });
+  function openTheme(from) {
+    opener = from; syncUI();
+    $("tmodal").hidden = false;
+    $("t-close").focus();
+  }
+  function closeTheme() {
+    $("tmodal").hidden = true;
+    if (opener && opener.focus) { try { opener.focus(); } catch (e) {} }
+  }
+  $("btn-theme").addEventListener("click", function () { openTheme(this); });
+  $("home-theme").addEventListener("click", function () { openTheme(this); });
+  $("t-close").addEventListener("click", closeTheme);
+  $("tmodal").addEventListener("click", function (e) { if (e.target === this) closeTheme(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("tmodal").hidden) closeTheme(); });
+
+  /* ---------- synchronisation avec l'ami ----------
+     - 'theme'   : couleurs et réglages + date de modification + identifiant du fond d'écran
+     - 'wpneed'  : demande du fond d'écran (celui qui l'a l'envoie)
+     - 'wpchunk' : morceaux de l'image (30 000 caractères), envoyés avec contrôle du débit
+     La modification la plus récente gagne. Tout ce qui est reçu est vérifié avant d'être utilisé. */
+  function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function pushTheme() {
+    if (!amHost() || !send) return;
+    clearTimeout(pushT);
+    pushT = setTimeout(function () { if (getConns().length) send(snapshot()); }, 300);
+  }
+  function snapshot() {
+    if (!amHost()) return null;                                   // seul l'hôte envoie son thème
+    return { t: "theme", th: { c: theme.c.slice(), a: theme.a, ac: theme.ac, d: theme.d, p: theme.p, fit: theme.fit }, ts: theme.ts, wpId: theme.wpId };
+  }
+  function ask(id, n) {
+    if (!send || !theme.sync || wpHave === id || theme.wpId !== id) return;
+    n = n || 0;
+    send({ t: "wpneed", id: id });
+    if (n < 3) setTimeout(function () { if (theme.wpId === id && wpHave !== id) ask(id, n + 1); }, 8000);
+  }
+  function maxBuffered() {
+    var m = 0;
+    getConns().forEach(function (c) { try { if (c.dataChannel && c.dataChannel.bufferedAmount > m) m = c.dataChannel.bufferedAmount; } catch (e) {} });
+    return m;
+  }
+  async function sendWp() {
+    if (!send || !wp || !theme.sync || !wpHave) return;
+    if (sendingWp) { queuedWp = true; return; }
+    sendingWp = true;
+    var id = wpHave, data = wp, n = Math.ceil(data.length / CH);
+    try {
+      for (var i = 0; i < n; i++) {
+        if (id !== wpHave) break;                                   // le fond a changé entre-temps
+        for (var k = 0; k < 400 && maxBuffered() > 1048576; k++) await new Promise(function (r) { setTimeout(r, 25); });
+        send({ t: "wpchunk", id: id, i: i, n: n, s: data.slice(i * CH, (i + 1) * CH) });
+      }
+    } catch (e) {}
+    sendingWp = false;
+    if (queuedWp) { queuedWp = false; if (wpHave !== id) sendWp(); }
+  }
+  function receive(d, from) {
+    if (!d) return;
+    if (d.t === "theme") {
+      if (amHost()) return;                                                            // l'hôte ne reçoit jamais de thème
+      var t = d.th;
+      if (!t) return;
+      if (!Array.isArray(t.c) || t.c.length < 3 || !t.c.slice(0, 3).every(isHex) || !isHex(t.ac)) return;
+      theme.c = t.c.slice(0, 3); theme.ac = t.ac;
+      theme.a = clamp(t.a, 0, 360, 160); theme.d = clamp(t.d, 0, 85, 0); theme.p = clamp(t.p, 40, 100, 80);
+      theme.fit = t.fit === "stretch" ? "stretch" : "cover";
+      theme.ts = typeof d.ts === "number" ? d.ts : Date.now();
+      var wid = (typeof d.wpId === "string" && /^[\w-]{1,32}$/.test(d.wpId)) ? d.wpId : "";
+      theme.wpId = wid;
+      if (!wid) { wp = null; wpHave = ""; try { localStorage.removeItem(WPKEY); } catch (e) {} }
+      apply(); save(); syncUI();
+      if (wid && wpHave !== wid) ask(wid);                                              // l'ancien fond reste affiché jusqu'à l'arrivée du nouveau
+      var now = Date.now();
+      if (notifyFn && now - lastNote > 4000) { lastNote = now; notifyFn("Le thème de l'hôte est appliqué."); }
+    } else if (d.t === "wpneed") {
+      if (!amHost()) return;
+      if (typeof d.id !== "string" || d.id !== wpHave || !wp) return;
+      var n2 = Date.now();
+      if (lastSent.id === d.id && n2 - lastSent.at < 4000) return;                      // déjà en cours d'envoi
+      lastSent = { id: d.id, at: n2 };
+      sendWp();
+    } else if (d.t === "wpchunk") {
+      if (amHost()) return;
+      if (d.id !== theme.wpId || d.id === wpHave || typeof d.s !== "string") return;
+      if (!(d.n > 0 && d.n <= 120) || !(d.i >= 0 && d.i < d.n) || d.s.length > CH + 10) return;
+      if (!wpBuf || wpBuf.id !== d.id) wpBuf = { id: d.id, n: d.n, parts: [], got: 0 };
+      if (wpBuf.parts[d.i] == null) { wpBuf.parts[d.i] = d.s; wpBuf.got++; }
+      if (wpBuf.got === wpBuf.n) {
+        var data = wpBuf.parts.join(""); wpBuf = null;
+        if (data.length < 3e6 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(data)) {
+          wp = data; wpHave = d.id;
+          try { localStorage.setItem(WPKEY, data); } catch (e) {}
+          apply(); syncUI();
+        }
+      }
+    }
+  }
+  window.__theme = {
+    bind: function (fnSend, fnConns, fnNote, fnHost) { send = fnSend; getConns = fnConns; notifyFn = fnNote; if (fnHost) amHost = fnHost; },
+    refresh: function () { syncUI(); },
+    snapshot: snapshot,
+    receive: receive
+  };
+
+  load(); apply();
+})();
+</script>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var video = $('video'), layout = $('layout');
+  var plyrPlayer = null;
+  if (window.Plyr) {
+    plyrPlayer = new Plyr(video, {
+      controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'captions', 'settings', 'fullscreen'],
+      settings: ['captions'],
+      fullscreen: { enabled: true, fallback: true, iosNative: false },
+      captions: { active: true, update: true },
+      keyboard: { focused: true, global: false },
+      tooltips: { controls: false, seek: true }
+    });
+    // plein écran du lecteur lui-même (bouton Plyr) : même rotation automatique sur téléphone
+    plyrPlayer.on('enterfullscreen', function () {
+      if (isFs()) return;                                  // c'est la salle entière qui est en plein écran : gérée ailleurs
+      // plein écran du lecteur = vidéo seule (sans chat) ; on ne pivote en paysage que si la vidéo est en paysage
+      if (!videoLandscape()) return;
+      try { if (window.matchMedia('(pointer: coarse)').matches && screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {}); } catch (e) {}
+    });
+    plyrPlayer.on('exitfullscreen', function () {
+      if (isFs() || orient.want) return;
+      try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+    });
+  }
+  var PREFIX = 'samaraf-series-';
+  var CH = 65536;                       // taille d'un morceau envoyé
+  var peer = null, conns = [], isHost = false, myName = '', roomCode = '', inviteMode = false;
+  var localFile = null, fileToken = 0, sending = {}, hasVideo = false, mse = null;
+  var fileConns = {}, sendKey = {}, qFor = {}, qCache = {}, qJobs = {}, qGen = 0, qChain = Promise.resolve(), qOwnerNote = '';
+  var switchingUntil = 0, subsText = '', applyingUntil = 0, pendingState = null, toastTimer = null, wakeLock = null;
+  var lastUserInput = 0, pointerDown = false, pseudoFs = false;
+  var recvGen = 0, classicFor = {}, lastErrAt = 0, fileConn = null, lastReq = { t: -99, at: 0 };
+  var myCid = (function () {                 // identifiant propre à cet onglet : une reconnexion remplace l'ancienne connexion
+    try { var k = sessionStorage.getItem('samaraf-cid'); if (!k) { k = Math.random().toString(36).slice(2, 10); sessionStorage.setItem('samaraf-cid', k); } return k; }
+    catch (e) { return Math.random().toString(36).slice(2, 10); }
+  })();
+  var joinedOnce = false, noReconnect = false, lastTry = 0, typers = {}, lastTypingSent = 0;
+  var haveKey = '', history = [], seenMids = {}, msgSeq = 0, lostShown = false, lastResume = 0, lastUnavail = 0;
+  var remote = { playing: false, time: 0, at: 0, known: false };   // dernier état connu de la source
+
+  /* ---------- utilitaires ---------- */
+  function genCode() {
+    var a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s = '';
+    for (var i = 0; i < 6; i++) s += a[Math.floor(Math.random() * a.length)];
+    return s;
+  }
+  function peerId(code) { return PREFIX + code.toLowerCase(); }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  // Chrome refuse certains fichiers (MKV, MOV…) quand leur type est mal annoncé : on donne un type qu'il accepte, le contenu reste le même
+  function mimeFor(name, type) {
+    if (/\.(mp4|m4v|mov)$/i.test(name)) return 'video/mp4';
+    if (/\.(mkv|webm)$/i.test(name)) return 'video/webm';
+    return type || 'video/mp4';
+  }
+  function typedBlob(f) { return f.slice(0, f.size, mimeFor(f.name, f.type)); }
+  function fmtSize(n) { return n > 1e9 ? (n / 1e9).toFixed(2) + ' Go' : Math.round(n / 1e6) + ' Mo'; }
+  function inRanges(r, t) {
+    for (var i = 0; i < r.length; i++) { if (t + 0.01 >= r.start(i) && t + 0.01 <= r.end(i)) return true; }
+    return false;
+  }
+  var lastWho = null;
+
+  /* ---------- file d'attente (hôte uniquement) ---------- */
+  var queue = [];
+  function isVideoFile(f) { return f && (f.type.indexOf('video') === 0 || /\.(mkv|mp4|m4v|mov|webm)$/i.test(f.name)); }
+  function renderQueue() {
+    var n = queue.length, label = n ? "File d'attente (" + n + ')' : "File d'attente";
+    $('btn-queue').textContent = label; $('fs-queue').textContent = label;
+    $('qtitle').textContent = label;
+    var ul = $('qlist'); ul.textContent = '';
+    if (!n) {
+      var p = document.createElement('li'); p.className = 'qempty';
+      p.textContent = "Aucune vidéo en attente. Ajoutes-en : elles seront lues automatiquement l'une après l'autre.";
+      ul.appendChild(p); return;
+    }
+    queue.forEach(function (f, i) {
+      var li = document.createElement('li'); li.className = 'qitem';
+      var num = document.createElement('span'); num.className = 'qn'; num.textContent = (i + 1) + '.';
+      var nm = document.createElement('span'); nm.className = 'qname'; nm.textContent = f.name; nm.title = f.name;
+      var sz = document.createElement('span'); sz.className = 'qsize'; sz.textContent = fmtSize(f.size);
+      li.appendChild(num); li.appendChild(nm); li.appendChild(sz);
+      function mk(txt, label, fn, off) {
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = txt; b.setAttribute('aria-label', label);
+        if (off) b.disabled = true; else b.addEventListener('click', fn);
+        li.appendChild(b);
+      }
+      mk('▶', 'Lire maintenant', function () { queue.splice(i, 1); renderQueue(); startFromQueue(f); });
+      mk('▲', 'Monter', function () { var t = queue[i - 1]; queue[i - 1] = queue[i]; queue[i] = t; renderQueue(); }, i === 0);
+      mk('▼', 'Descendre', function () { var t = queue[i + 1]; queue[i + 1] = queue[i]; queue[i] = t; renderQueue(); }, i === n - 1);
+      mk('✕', 'Retirer', function () { queue.splice(i, 1); renderQueue(); });
+      ul.appendChild(li);
+    });
+  }
+  function startFromQueue(f) {
+    loadFile(f);
+    tryPlay();
+    $('qpanel').hidden = true;
+    var rest = queue.length;
+    var txt = 'Lecture : ' + f.name + (rest ? ' · ' + rest + ' en attente' : '');
+    addMsg('', txt, 'sys');
+    broadcast({ t: 'sys', text: txt });
+  }
+  function playNext() {
+    if (!isHost || !queue.length) return false;
+    var f = queue.shift(); renderQueue();
+    startFromQueue(f);
+    return true;
+  }
+  function addToQueue(files) {
+    if (!isHost) return;
+    var added = 0;
+    Array.prototype.forEach.call(files || [], function (f) { if (isVideoFile(f)) { queue.push(f); added++; } });
+    renderQueue();
+    if (added && !hasVideo) playNext();          // rien en cours : on démarre tout de suite
+  }
+  function toggleQueue() { $('qpanel').hidden = !$('qpanel').hidden; }
+  // fin de la vidéo : l'hôte enchaîne avec la suivante
+  video.addEventListener('ended', function () {
+    if (isHost && queue.length) setTimeout(function () { if (video.ended || !hasVideo) playNext(); }, 800);
+  });
+  var EMOJI_ONLY = /^(?:\p{Extended_Pictographic}|‍|️|\s){1,12}$/u;
+  function addMsg(who, text, cls) {
+    var box = $('msgs'), el = document.createElement('div');
+    el.className = 'msg ' + (cls || '');
+    if (cls === 'sys') {
+      lastWho = null;
+      el.textContent = text;
+    } else {
+      var key = (cls || 'peer') + '|' + who;
+      var same = (lastWho === key);       // même personne que le message précédent : le nom n'est pas répété
+      lastWho = key;
+      if (same) el.classList.add('cont');
+      else {
+        var w = document.createElement('span'); w.className = 'who'; w.textContent = who;
+        el.appendChild(w);
+      }
+      var t = document.createElement('span'); t.className = 'txt'; t.textContent = text;
+      if (EMOJI_ONLY.test(text)) el.classList.add('big');
+      el.appendChild(t);
+    }
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+  }
+  function showToast(who, text) {
+    var t = $('toast');
+    t.textContent = '';
+    var b = document.createElement('b'); b.textContent = who + ' : ';
+    t.appendChild(b); t.appendChild(document.createTextNode(text));
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 5000);
+  }
+  function openConns() { return conns.filter(function (c) { return c.open; }); }
+  // le nombre de spectateurs n'est affiché que chez l'hôte (celui qui a créé la salle)
+  function updateStatus() {
+    var seen = {}, n = 0, dot = $('dot'), txt = $('status-text');
+    openConns().forEach(function (c) { var k = c.cid || c.peer; if (!seen[k]) { seen[k] = 1; n++; } });
+    if (isHost) {
+      if (n > 0) { dot.className = 'dot ok'; txt.textContent = n + (n > 1 ? ' spectateurs' : ' spectateur') + ' en ligne'; }
+      else { dot.className = 'dot wait'; txt.textContent = "En attente d'un ami…"; }
+    } else {
+      if (n > 0) { dot.className = 'dot ok'; txt.textContent = 'Connecté'; }
+      else { dot.className = 'dot wait'; txt.textContent = joinedOnce ? 'Connexion perdue · reconnexion…' : 'Connexion…'; }
+    }
+    if (window.__theme) window.__theme.refresh();
+  }
+  function setXfer(text) {
+    var el = $('xfer');
+    el.hidden = !text;
+    el.textContent = text || '';
+  }
+  function setDrop(title, text, showPick, progress) {
+    $('drop').hidden = false;
+    $('drop-title').textContent = title;
+    $('drop-text').textContent = text;
+    $('btn-pick').hidden = !showPick;
+    $('btn-yt-drop').hidden = !showPick;
+    $('prog').hidden = (progress === undefined);
+    if (progress !== undefined) $('prog').value = progress;
+  }
+
+  /* ---------- gestes de l'utilisateur ---------- */
+  // Seules les actions faites par une personne sont envoyées aux autres.
+  // Les pauses ou sauts déclenchés par le navigateur ne sont jamais renvoyés (évite les boucles de resynchronisation).
+  function markUser() { lastUserInput = Date.now(); }
+  function userRecent() { return pointerDown || (Date.now() - lastUserInput < 2000); }
+  $('stage').addEventListener('pointerdown', function () { pointerDown = true; markUser(); }, true);
+  $('stage').addEventListener('click', markUser, true);
+  $('stage').addEventListener('touchstart', markUser, { capture: true, passive: true });
+  ['pointerup', 'pointercancel'].forEach(function (ev) {
+    document.addEventListener(ev, function () { if (pointerDown) { pointerDown = false; markUser(); } }, true);
+  });
+  document.addEventListener('keydown', function (e) {
+    var tg = e.target && e.target.tagName;
+    if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT') return;
+    markUser();
+  });
+
+  /* ---------- réseau : messages ---------- */
+  function broadcast(msg, except) {
+    conns.forEach(function (c) { if (c !== except && c.open) c.send(msg); });
+  }
+  // retire une connexion (départ, coupure ou remplacement par une reconnexion)
+  // met la vidéo en pause sans que ce soit pris pour une action de l'utilisateur ; renvoie true si quelque chose jouait
+  function pauseAll() {
+    var did = false;
+    if (yt.active) {
+      if (yt.ready && ytPlaying()) { ytWant = false; ytApplyUntil = Date.now() + 2000; try { yt.player.pauseVideo(); } catch (e) {} did = true; }
+    } else if (hasVideo && !video.paused) {
+      applyingUntil = Date.now() + 2000;
+      remote = { playing: false, time: video.currentTime, at: performance.now(), known: true };
+      video.pause(); did = true;
+    }
+    return did;
+  }
+  function dropConn(c, quiet) {
+    if (c.dead) return;
+    c.dead = true;
+    var i = conns.indexOf(c);
+    if (i >= 0) conns.splice(i, 1);
+    try { c.close(); } catch (e) {}
+    delete typers[c.cid]; renderTyping();
+    updateStatus();
+    if (isHost) renderQ();
+    // connexion jamais ouverte, remplacée par une reconnexion de la même personne, ou onglet remplacé : pas un vrai départ
+    if (quiet || c.replaced || !c.wasOpen || noReconnect) return;
+    var did = pauseAll();
+    if (isHost) {
+      var txt = (c.peerName || 'Un ami') + ' a quitté la salle.' + (did ? ' La vidéo est en pause.' : '');
+      addMsg('', txt, 'sys');
+      if (openConns().length) {
+        broadcast({ t: 'sys', text: txt });
+        if (did) { if (yt.active) broadcast({ t: 'ytstate', id: yt.id, playing: false, time: ytCur() }); else broadcast(stateMsg()); }
+      }
+    } else {
+      lostShown = true;
+      addMsg('', 'Connexion au salon perdue.' + (did ? ' La vidéo est en pause.' : '') + ' Reconnexion en cours…', 'sys');
+      lastTry = 0; guestLink();
+    }
+  }
+  function setupConn(c) {
+    c.on('open', function () {
+      // un lien valide existe déjà : cette connexion en double est abandonnée
+      if (!isHost && openConns().some(function (o) { return o !== c && !o.dead; })) { c.replaced = true; dropConn(c, true); return; }
+      c.wasOpen = true;
+      c.lastSeen = Date.now();
+      if (conns.indexOf(c) < 0) conns.push(c);
+      if (!isHost) {
+        joinedOnce = true;
+        if (lostShown) { lostShown = false; addMsg('', 'Reconnecté au salon.', 'sys'); }
+      }
+      updateStatus();
+      c.send({ t: 'hello', name: myName, cid: myCid, has: haveKey, q: myQ });
+    });
+    c.on('data', function (d) { c.lastSeen = Date.now(); handle(d, c); });
+    c.on('close', function () { dropConn(c); });
+    c.on('error', updateStatus);
+  }
+  function fileKey(f) { return f.name + '|' + f.size; }
+  function pushHistory(mid, name, text, cid) {
+    history.push({ mid: mid, name: String(name || '').slice(0, 20), text: String(text).slice(0, 500), cid: cid });
+    if (history.length > 200) history.shift();
+  }
+  // envoyé à l'autre dès que son 'hello' est reçu (on connaît alors son identifiant et ce qu'il possède déjà)
+  function welcome(c, d) {
+    if (localFile) {
+      if (d.q && QUALS[d.q]) qFor[c.peer] = d.q;                              // qualité choisie par cette personne
+      var wk = qFor[c.peer] || 'orig', qb = wk !== 'orig' ? qCache[wk] : null, qr = !!(qb && qb.tracks);
+      if (d.has && d.has === fileKey(qr ? qb : localFile)) {                   // il a déjà toute la vidéo : on ne la renvoie pas
+        sendHeartbeat();
+        if (wk !== 'orig' && !qr) serveQuality(c.peer, wk);
+      } else {
+        c.send({ t: 'source', name: localFile.name });
+        if (subsText) c.send({ t: 'subs', text: subsText });
+        sendBest(c.peer);
+      }
+    }
+    if (yt.active) c.send({ t: 'yt', id: yt.id, time: ytCur(), playing: ytPlaying(), name: myName });
+    var thm = window.__theme && window.__theme.snapshot(); if (thm) c.send(thm);
+    if (isHost && history.length) c.send({ t: 'history', msgs: history.slice(-200) });
+  }
+  function handle(d, c) {
+    if (!d || !d.t) return;
+    if (isHost && /^(chat|typing|state|hb|source|subs|need|yt|ytstate|yths|ytstop|quality|qstate)$/.test(d.t)) broadcast(d, c);
+    switch (d.t) {
+      case 'hello':                                  // arrivée silencieuse : rien dans le chat
+        c.peerName = d.name; c.cid = d.cid;
+        if (isHost) { c.q = QUALS[d.q] ? d.q : 'orig'; renderQ(); }
+        // même personne qui revient (actualisation, reconnexion) : l'ancienne connexion est retirée, elle n'est pas comptée en double
+        if (isHost && d.cid) conns.slice().forEach(function (o) {
+          if (o !== c && o.cid === d.cid) { o.replaced = true; try { o.send({ t: 'replaced' }); } catch (e) {} dropConn(o, true); }
+        });
+        updateStatus();
+        welcome(c, d);
+        break;
+      case 'ping': try { c.send({ t: 'pong' }); } catch (e) {} break;
+      case 'pong': break;
+      case 'bye': dropConn(c); break;
+      case 'replaced':
+        c.replaced = true;
+        // si une autre connexion valide existe encore dans cet onglet, ce n'était qu'un doublon
+        if (openConns().some(function (o) { return o !== c && !o.dead; })) { dropConn(c, true); break; }
+        noReconnect = true; addMsg('', 'Tu es connecté depuis un autre onglet : celui-ci est déconnecté.', 'sys'); break;
+      case 'typing':
+        if (d.off) delete typers[d.cid]; else typers[d.cid] = { name: d.name, at: Date.now() };
+        renderTyping();
+        break;
+      case 'sys': addMsg('', d.text, 'sys'); break;
+      case 'chat':
+        delete typers[d.cid]; renderTyping();
+        if (typeof d.text !== 'string') break;
+        if (d.mid) { if (seenMids[d.mid]) break; seenMids[d.mid] = 1; }
+        if (isHost) pushHistory(d.mid, d.name, d.text, d.cid);
+        addMsg(String(d.name || '').slice(0, 20), d.text.slice(0, 500), ''); showToast(String(d.name || '').slice(0, 20), d.text.slice(0, 500)); break;
+      case 'history':
+        if (isHost || !Array.isArray(d.msgs)) break;
+        var firstTime = !Object.keys(seenMids).length, shown = 0;
+        d.msgs.slice(-200).forEach(function (m) {
+          if (!m || typeof m.text !== 'string' || (m.mid && seenMids[m.mid])) return;
+          if (m.mid) seenMids[m.mid] = 1;
+          if (!shown) addMsg('', firstTime ? 'Messages du salon :' : 'Messages reçus pendant ton absence :', 'sys');
+          shown++;
+          addMsg(String(m.name || '').slice(0, 20), m.text.slice(0, 500), (m.cid && m.cid === myCid) ? 'me' : '');
+        });
+        break;
+      case 'source':
+        // un ami choisit une vidéo : la mienne (si j'en ai une) est remplacée par la sienne
+        haveKey = '';
+        stopYT(true);
+        if (localFile) { localFile = null; fileToken++; }
+        resetVideo();
+        $('fname').textContent = d.name;
+        setDrop("Ton ami va t'envoyer la vidéo", d.name, false, 0);
+        break;
+      case 'subs': applySubs(d.text); break;
+      case 'quality': if (isHost && c && c !== peer) { c.q = QUALS[d.q] ? d.q : 'orig'; renderQ(); }
+        if (localFile && d.pid && peer && d.pid !== peer.id) serveQuality(d.pid, QUALS[d.q] ? d.q : 'orig', +d.at || 0); break;
+      case 'qstate': onQState(d); break;
+      case 'need': if (localFile && hasVideo) sendHeartbeat(); break;
+      case 'classic':
+        // le lecteur de l'ami n'a pas réussi la lecture en direct : on lui renvoie le fichier complet
+        if (localFile) {
+          classicFor[c.peer] = true; fileToken++; sending = {};
+          openConns().forEach(function (cc) { sendFileTo(cc.peer); });
+        }
+        break;
+      case 'state': applyState(d); break;
+      case 'hb': onHeartbeat(d); break;
+      case 'yt':
+        if (!/^[\w-]{11}$/.test(String(d.id))) break;
+        if (yt.active && yt.id === d.id) { if (typeof d.time === 'number') applyYtState({ playing: !!d.playing, time: d.time }); break; }
+        startYT(d.id, d.start || d.time || 0, false, typeof d.time === 'number' ? { playing: !!d.playing, time: d.time } : null);
+        addMsg('', (d.name || 'Ton ami') + ' a ouvert une vidéo YouTube. Appuyez sur lecture : vous serez synchronisés.', 'sys');
+        break;
+      case 'ytstate': if (yt.active && d.id === yt.id) applyYtState(d); break;
+      case 'yths': onYtHeartbeat(d); break;
+      case 'theme': case 'wpneed': case 'wpchunk': if (window.__theme) window.__theme.receive(d, c.peerName); break;
+      case 'ytstop': if (yt.active) { stopYT(true); addMsg('', (d.name || 'Ton ami') + ' a arrêté la vidéo YouTube.', 'sys'); } break;
+    }
+  }
+
+  // Présence : chacun envoie un signe de vie toutes les 3 s. Sans nouvelles pendant 20 s, la connexion est considérée coupée.
+  // invité : rétablit le lien avec l'hôte (nouveau lien de signalisation, ou nouvelle connexion directe)
+  function guestLink() {
+    if (isHost || noReconnect || !joinedOnce || !roomCode || openConns().length) return;
+    var now = Date.now();
+    if (now - lastTry < 6000) return;
+    lastTry = now;
+    if (!peer || peer.destroyed) {
+      startPeer(null, function () { setupConn(peer.connect(peerId(roomCode), { reliable: true })); });
+    } else if (peer.disconnected) {
+      try { peer.reconnect(); } catch (e) {}                       // l'événement 'open' relance la connexion
+    } else {
+      try { setupConn(peer.connect(peerId(roomCode), { reliable: true })); } catch (e) {}
+    }
+  }
+  // retour au premier plan (appel téléphonique, changement d'application, réseau revenu) : on vérifie tout de suite que le lien est vivant
+  function onResume() {
+    if (!peer || document.hidden) return;
+    var t = Date.now();
+    if (t - lastResume < 1500) return;
+    lastResume = t; lastTry = 0;
+    if (peer.disconnected && !peer.destroyed) { try { peer.reconnect(); } catch (e) {} }
+    openConns().forEach(function (c) { try { c.send({ t: 'ping' }); } catch (e) { dropConn(c); } });
+    setTimeout(function () {
+      conns.slice().forEach(function (c) { if ((c.lastSeen || 0) < t) dropConn(c); });   // aucune réponse : lien mort
+      lastTry = 0; guestLink();
+    }, 4000);
+    guestLink();
+  }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') onResume(); });
+  window.addEventListener('pageshow', onResume);
+  window.addEventListener('online', onResume);
+  setInterval(function () {
+    var now = Date.now();
+    openConns().forEach(function (c) { try { c.send({ t: 'ping' }); } catch (e) {} });
+    conns.slice().forEach(function (c) { if (now - (c.lastSeen || now) > 20000) dropConn(c); });
+    if (peer && peer.disconnected && !peer.destroyed) { try { peer.reconnect(); } catch (e) {} }
+    guestLink();
+  }, 3000);
+  // fermeture de l'onglet : on prévient les autres tout de suite
+  function leave(e) {
+    conns.slice().forEach(function (c) { try { c.send({ t: 'bye' }); } catch (x) {} });
+    if (!(e && e.persisted)) { try { peer && peer.destroy(); } catch (x) {} }     // page mise en cache (retour arrière) : on garde la connexion
+  }
+  window.addEventListener('pagehide', leave);
+
+  /* ---------- réseau : connexion ---------- */
+  function startPeer(id, onOpen) {
+    if (typeof Peer === 'undefined') {
+      $('home-error').textContent = 'Impossible de charger la connexion directe. Vérifie ta connexion internet.';
+      return;
+    }
+    var firstOpen = true;
+    peer = id ? new Peer(id) : new Peer();
+    peer.on('open', function (pid) {
+      if (firstOpen) { firstOpen = false; onOpen(pid); }
+      else if (!isHost && !openConns().length) { try { setupConn(peer.connect(peerId(roomCode), { reliable: true })); } catch (e) {} }   // lien de signalisation rétabli
+    });
+    peer.on('connection', function (c) {
+      if (c.label === 'file') receiveFile(c);
+      else if (isHost) setupConn(c);
+    });
+    peer.on('error', function (e) {
+      if (e.type === 'peer-unavailable') {
+        if (joinedOnce) {                                   // déjà entré dans la salle : on réessaie, sans renvoyer à l'accueil
+          if (Date.now() - lastUnavail > 20000) { lastUnavail = Date.now(); addMsg('', "L'hôte est injoignable pour le moment. Nouvelle tentative…", 'sys'); }
+        } else backHome("Aucune salle avec ce code. Vérifie le code ou demande à ton ami de recréer la salle.");
+      }
+      else if (e.type === 'unavailable-id' && isHost) {
+        try { peer.destroy(); } catch (x) {}
+        if (!roomFixed) { createRoom(true); return; }
+        // code fixe : l'ancienne session met un moment à se libérer côté serveur, on réessaie avec le MÊME code
+        if (++fixedTries > 8) { backHome('Ton code fixe est encore utilisé (autre onglet ou ancienne session pas encore fermée). Réessaie dans une minute, ou clique sur « Nouveau code ».'); return; }
+        $('home-error').textContent = 'Récupération de ton code ' + roomCode + '…';
+        setTimeout(function () { if (isHost && !$('home').hidden) createRoom(true); }, 3000);
+      }
+      else { $('home-error').textContent = 'Erreur de connexion : ' + e.type; updateStatus(); }
+    });
+    peer.on('disconnected', function () { try { peer.reconnect(); } catch (e) {} });
+  }
+
+  /* =====================================================
+     ENVOI DU FICHIER
+     - MP4 : découpé en fragments (mp4box) et envoyé dans l'ordre,
+       pour que l'ami puisse regarder pendant la réception.
+     - Autres formats (ou si le navigateur de l'ami ne sait pas) :
+       envoi du fichier brut, lecture à la fin.
+     ===================================================== */
+  function sendFileTo(id, src, qkey, force) {
+    var f = src || localFile, tok = fileToken, qk = qkey || 'orig';
+    if (!f || !peer) return;
+    if (force) { delete sending[id]; var old = fileConns[id]; if (old) { try { old.close(); } catch (e) {} } }   // on remplace l'envoi en cours (changement de qualité)
+    if (sending[id] === tok) return;
+    sending[id] = tok; sendKey[id] = qk;
+    var c = peer.connect(id, { label: 'file', serialization: 'raw', reliable: true });
+    fileConns[id] = c;
+    var st = { fallback: false, q: qk };
+    c.on('data', function (d) {
+      if (typeof d === 'string') { try { var m = JSON.parse(d); if (m.k === 'fallback') st.fallback = true; else if (m.k === 'seek' && st.seek) st.seek(+m.time); } catch (e) {} }
+    });
+    c.on('open', async function () {
+      try {
+        var done = false;
+        if (f.isStream) {
+          try { done = await sendQStream(c, tok, st, f); }
+          catch (e) { if (e && e.message === 'fb') { qFor[id] = 'orig'; sendKey[id] = 'orig'; await sendClassic(c, localFile, tok); done = true; } else throw e; }
+        }
+        else if (!classicFor[id] && window.MP4Box && (/\.(mp4|m4v|mov)$/i.test(f.name) || f.type === 'video/mp4')) done = await sendStream(c, f, tok, st);
+        if (!done) await sendClassic(c, f, tok);
+        setXfer('');
+        if (qk === 'orig') addMsg('', 'Vidéo envoyée. Bon film !', 'sys');
+        setTimeout(function () { try { c.close(); } catch (e) {} }, 3000);
+      } catch (e) {
+        try { c.close(); } catch (x) {}
+        if (fileConns[id] === c) { setXfer(''); if (sending[id] === tok) delete sending[id]; }
+      }
+    });
+    c.on('close', function () { if (fileConns[id] === c && sending[id] === tok) delete sending[id]; });
+  }
+
+  function checkAlive(c, tok) { if (tok !== fileToken || !c.open) throw new Error('stop'); }
+
+  async function sendClassic(c, f, tok) {
+    var dc = c.dataChannel, off = 0, SL = 1048576, t0 = Date.now();
+    c.send(JSON.stringify({ k: 'start', name: f.name, size: f.size, type: f.type }));
+    while (off < f.size) {
+      checkAlive(c, tok);
+      var buf = await f.slice(off, off + SL).arrayBuffer();
+      for (var i = 0; i < buf.byteLength; i += CH) {
+        while (dc.bufferedAmount > 4 * 1048576) { await sleep(20); checkAlive(c, tok); }
+        c.send(buf.slice(i, i + CH));
+      }
+      off += buf.byteLength;
+      var speed = off / ((Date.now() - t0) / 1000) / 1e6;
+      setXfer('Envoi ' + Math.round(off / f.size * 100) + ' % · ' + speed.toFixed(1) + ' Mo/s');
+    }
+    while (dc.bufferedAmount > 0) { await sleep(50); checkAlive(c, tok); }
+    c.send(JSON.stringify({ k: 'end' }));
+  }
+
+  // Envoi fragmenté, par « sessions » : une session lit le fichier à partir d'une position et envoie les morceaux dans l'ordre.
+  // Si l'ami saute vers un endroit pas encore envoyé, il le demande : l'envoi repart de là tout de suite,
+  // puis les trous laissés derrière sont comblés ensuite.
+  // renvoie true si tout a été envoyé en mode fragmenté, false s'il faut passer à l'envoi brut
+  async function sendStream(c, f, tok, st) {
+    var dc = c.dataChannel, out = [], SL = 1048576, t0 = Date.now(), sent = 0;
+    var covered = [], meta = null, initSent = false, startSec = 0, seekReq = null;
+    var cur = { a0: null, a1: null };      // zone envoyée par la session en cours (en secondes)
+
+    function pushSeg(id, isInit, buffer, a, b) {
+      out.push(JSON.stringify({ k: 'seg', id: id, init: isInit, len: buffer.byteLength, a: a, b: b }));
+      for (var i = 0; i < buffer.byteLength; i += CH) out.push(buffer.slice(i, i + CH));
+    }
+    async function drain() {
+      while (out.length) {
+        checkAlive(c, tok);
+        if (st.fallback) throw new Error('fb');
+        while (dc.bufferedAmount > 4 * 1048576) {
+          await sleep(20); checkAlive(c, tok);
+          if (st.fallback) throw new Error('fb');
+        }
+        c.send(out.shift());
+      }
+    }
+    function inCovered(t) {
+      for (var i = 0; i < covered.length; i++) { if (t >= covered[i][0] - 0.1 && t <= covered[i][1] + 0.1) return true; }
+      return false;
+    }
+    function addCovered(a, b) {
+      var na = a, nb = b, keep = [];
+      covered.forEach(function (z) {
+        if (z[1] >= na - 0.1 && z[0] <= nb + 0.1) { na = Math.min(na, z[0]); nb = Math.max(nb, z[1]); }
+        else keep.push(z);
+      });
+      keep.push([na, nb]);
+      keep.sort(function (x, y) { return x[0] - y[0]; });
+      covered = keep;
+    }
+    // où reprendre pour combler le premier trou (null = tout est envoyé)
+    function nextGap() {
+      if (!covered.length) return 0;
+      if (covered[0][0] > startSec + 0.5) return startSec;
+      if (covered[0][1] < Infinity) return covered[0][1];
+      return null;
+    }
+    // demande de l'ami : on ignore si c'est déjà envoyé ou si l'envoi en cours y arrive dans quelques secondes
+    st.seek = function (t) {
+      if (!(t >= 0) || inCovered(t)) return;
+      if (cur.a0 !== null && t >= cur.a0 - 0.1 && t <= cur.a1 + 5) return;
+      seekReq = t;
+    };
+
+    async function runSession(startAt) {
+      var mp4 = MP4Box.createFile(), ready = false, failed = false, hitV = false, hitA = false, hasA = false, extra = 0;
+      var ts = {}, vid = null, stopAt = Infinity, n = 0, a0 = null, a1 = null, offset = 0, pos = false, eof = false;
+      // on s'arrête quand on rejoint une zone déjà envoyée
+      covered.forEach(function (z) { if (z[0] > startAt + 0.05 && z[0] < stopAt) stopAt = z[0]; });
+      cur.a0 = null; cur.a1 = null;
+
+      function segEnd(id, num, a) {
+        try {
+          var tk = mp4.getTrackById(id), s = tk.samples[Math.min(num, tk.samples.length) - 1];
+          return Math.max(a, (s.dts + s.duration) / s.timescale);
+        } catch (e) { return a + 4; }
+      }
+      mp4.onError = function () { failed = true; };
+      mp4.onReady = function (info) {
+        var v = info.videoTracks[0], a = info.audioTracks[0];
+        if (!v) { failed = true; return; }
+        var picked = a ? [v, a] : [v];
+        picked.forEach(function (t) { ts[t.id] = t.timescale; });
+        vid = v.id; hasA = !!a;
+        try { var s0 = mp4.getTrackById(v.id).samples[0]; startSec = s0.dts / s0.timescale; } catch (e) {}
+        if (!meta) {
+          meta = {
+            duration: info.duration / info.timescale,
+            tracks: picked.map(function (t) {
+              var kind = (t === v) ? 'video' : 'audio';
+              return { id: t.id, kind: kind, mime: kind + '/mp4; codecs="' + t.codec + '"', timescale: t.timescale };
+            })
+          };
+          out.push(JSON.stringify({ k: 'init', name: f.name, size: f.size, duration: meta.duration, tracks: meta.tracks, q: st.q || 'orig', oh: f.oh || (v.video && v.video.height) || 0 }));
+        }
+        picked.forEach(function (t) {
+          mp4.setSegmentOptions(t.id, null, { nbSamples: t === v ? 100 : 200, rapAlignement: true });
+        });
+        var inits = mp4.initializeSegmentation();
+        if (!initSent) { initSent = true; inits.forEach(function (s) { pushSeg(s.id, true, s.buffer, 0, 0); }); }
+        mp4.start();
+        ready = true;
+      };
+      mp4.onSegment = function (id, user, buffer, num) {
+        try { mp4.releaseUsedSamples(id, num); } catch (e) {}
+        var isV = (id === vid);
+        if (isV ? hitV : hitA) return;
+        var a = tfdtTime(buffer, ts[id]);
+        if (a >= stopAt - 0.05) { if (isV) hitV = true; else hitA = true; return; }
+        var b = segEnd(id, num, a);
+        pushSeg(id, false, buffer, a, b);
+        if (isV) {
+          n++;
+          if (a0 === null) a0 = a;
+          a1 = a1 === null ? b : Math.max(a1, b);
+          cur.a0 = a0; cur.a1 = a1;
+        }
+      };
+
+      for (;;) {
+        checkAlive(c, tok);
+        if (failed) return { r: 'fail', n: n };
+        if (hitV && (!hasA || hitA || ++extra > 6)) break;
+        if (ready && seekReq !== null) break;
+        if (offset >= f.size) { eof = true; break; }
+        var len = Math.min(SL, f.size - offset);
+        var ab = await f.slice(offset, offset + len).arrayBuffer();
+        ab.fileStart = offset;
+        var next = mp4.appendBuffer(ab);
+        if (failed) return { r: 'fail', n: n };
+        if (ready && !pos) { pos = true; offset = mp4.seek(startAt, true).offset; }
+        else offset = (typeof next === 'number' && next > offset + len) ? next : offset + len;
+        sent += len;
+        await drain();
+        setXfer('Envoi ' + Math.min(99, Math.round(offset / f.size * 100)) + ' % · ' + (sent / ((Date.now() - t0) / 1000) / 1e6).toFixed(1) + ' Mo/s');
+      }
+      if (!ready) return { r: 'fail', n: 0 };
+      if (eof) {
+        mp4.flush();
+        await drain();
+        addCovered(a0 === null ? startAt : a0, Infinity);
+        return { r: 'eof', n: n };
+      }
+      if (hitV) { addCovered(a0 === null ? stopAt : a0, stopAt); return { r: 'hit', n: n }; }
+      if (a0 !== null) addCovered(a0, a1);
+      return { r: 'seek', n: n };
+    }
+
+    try {
+      var startAt = 0, idle = 0, guard = 0;
+      for (;;) {
+        var res = await runSession(startAt);
+        if (res.r === 'fail') return false;
+        if (seekReq !== null) {
+          var q = seekReq; seekReq = null;
+          if (!inCovered(q)) { startAt = q; idle = 0; continue; }
+        }
+        var gap = nextGap();
+        if (gap === null) break;
+        idle = (res.n > 0) ? 0 : idle + 1;
+        if (idle > 3 || ++guard > 400) break;
+        startAt = gap;
+      }
+      out.push(JSON.stringify({ k: 'end' }));
+      await drain();
+      while (dc.bufferedAmount > 0) { await sleep(50); checkAlive(c, tok); }
+      return true;
+    } catch (e) {
+      if (e.message === 'fb') return false;
+      throw e;
+    }
+  }
+
+  /* =====================================================
+     RÉCEPTION DU FICHIER
+     ===================================================== */
+  function tfdtTime(ab, timescale) {
+    var u = new Uint8Array(ab, 0, Math.min(ab.byteLength, 4096));
+    for (var i = 4; i < u.length - 16; i++) {
+      if (u[i] === 0x74 && u[i + 1] === 0x66 && u[i + 2] === 0x64 && u[i + 3] === 0x74) {
+        var dv = new DataView(ab, i + 8);
+        var val = (u[i + 4] === 1) ? dv.getUint32(0) * 4294967296 + dv.getUint32(4) : dv.getUint32(0);
+        return val / timescale;
+      }
+    }
+    return 0;
+  }
+
+  function receiveFile(c) {
+    var rmode = null;                         // null | 'mse' | 'classic' | 'drop'
+    var meta = null, parts = [], blobs = [], got = 0, partBytes = 0, t0 = Date.now(), done = false;
+    var cur = null, gen = ++recvGen;
+    fileConn = c;
+
+    c.on('data', function (d) {
+      if (gen !== recvGen) return;           // ancien transfert remplacé : on l'ignore
+      if (typeof d === 'string') {
+        var m = JSON.parse(d);
+        if (m.k === 'init') initStream(m);
+        else if (m.k === 'start') {
+          rmode = 'classic'; meta = m; t0 = Date.now(); got = 0; parts = []; blobs = []; partBytes = 0;
+          $('fname').textContent = m.name + ' · ' + fmtSize(m.size);
+        }
+        else if (m.k === 'seg' && rmode === 'mse') cur = { id: m.id, init: m.init, len: m.len, a: m.a || 0, b: m.b || 0, pieces: [], got: 0 };
+        else if (m.k === 'end') finish();
+        return;
+      }
+      if (rmode === 'classic' && meta) {
+        parts.push(d); got += d.byteLength; partBytes += d.byteLength;
+        if (partBytes > 64 * 1048576) { blobs.push(new Blob(parts)); parts = []; partBytes = 0; }
+        var pct = Math.round(got / meta.size * 100);
+        var speed = got / ((Date.now() - t0) / 1000) / 1e6;
+        setDrop('Réception de la vidéo', pct + ' % · ' + speed.toFixed(1) + ' Mo/s · ' + fmtSize(got) + ' / ' + fmtSize(meta.size), false, pct);
+      } else if (rmode === 'mse' && cur) {
+        cur.pieces.push(d); cur.got += d.byteLength;
+        if (cur.got >= cur.len) { var s = cur; cur = null; onSegment(s); }
+      }
+    });
+    c.on('close', function () {
+      if (!done && rmode && gen === recvGen) {
+        // changement de qualité : l'ancien envoi est fermé juste avant que le nouveau arrive, on attend un peu avant de parler d'interruption
+        var rm = rmode;
+        setTimeout(function () {
+          if (done || gen !== recvGen) return;
+          addMsg('', 'Le transfert a été interrompu. Demande à ton ami de renvoyer la vidéo.', 'sys');
+          setXfer('');
+          if (rm === 'classic') setDrop('Transfert interrompu', 'Ton ami doit renvoyer la vidéo.', true);
+        }, 2500);
+      }
+    });
+
+    // --- mode fragmenté : lecture pendant la réception ---
+    function initStream(m) {
+      var ok = !!window.MediaSource && m.tracks.every(function (t) { return MediaSource.isTypeSupported(t.mime); });
+      if (!ok) { rmode = 'drop'; c.send(JSON.stringify({ k: 'fallback' })); return; }
+      rmode = 'mse'; meta = m;
+      var resume = (hasVideo && video.readyState >= 1) ? { playing: !video.paused, time: video.currentTime } : null;   // changement de qualité : on reprend au même endroit
+      resetVideo();
+      if (resume) { pendingState = resume; switchingUntil = Date.now() + 20000; }
+      onStreamQuality(m.q || 'orig', m.oh || 0, !!resume);
+      if ((m.q || 'orig') !== 'orig') setXfer('');                       // plus de pourcentage d'envoi/réception pour une qualité convertie
+      var ms = new MediaSource();
+      mse = { ms: ms, tracks: {}, ended: false, eosDone: false, duration: m.duration, ahead: Infinity, recv: 0, vtrack: null };
+      lastReq = { t: -99, at: 0 };
+      m.tracks.forEach(function (t) {
+        mse.tracks[t.id] = { id: t.id, mime: t.mime, timescale: t.timescale, segs: [], sb: null, busy: false, pend: null, cur: null, initBlob: null, initDone: false };
+        if (t.kind === 'video') mse.vtrack = mse.tracks[t.id];
+      });
+      ms.addEventListener('sourceopen', function () {
+        if (mse && mse.ms === ms && !ms.__ready) {
+          ms.__ready = true;
+          try { ms.duration = m.duration; } catch (e) {}
+          Object.keys(mse.tracks).forEach(function (k) {
+            var tr = mse.tracks[k];
+            tr.sb = ms.addSourceBuffer(tr.mime);
+            tr.sb.addEventListener('updateend', function () {
+              if (tr.pend === 'init') tr.initDone = true;
+              else if (tr.pend === 'seg' && tr.cur) tr.cur.ap = true;
+              tr.pend = null; tr.busy = false;
+              pump(tr);
+            });
+            pump(tr);
+          });
+        }
+      });
+      video.src = URL.createObjectURL(ms);
+      hasVideo = true;
+      renderQ();
+      armPending();
+      $('fname').textContent = m.name + ' · ' + fmtSize(m.size);
+      if (!resume) setDrop('Préparation de la vidéo', 'La lecture sera possible dans quelques secondes.', false, 0);
+    }
+    function onSegment(s) {
+      if (!mse) return;
+      var tr = mse.tracks[s.id];
+      if (!tr) return;
+      if (s.init) { tr.initBlob = new Blob(s.pieces); }
+      else {
+        var isNew = addSeg(tr, s.a, s.b, new Blob(s.pieces));
+        if (isNew && tr === mse.vtrack) {
+          if (curQ === 'orig') {                                            // la progression n'est affichée que pour la vidéo d'origine
+            var got = 0; covRanges(tr).forEach(function (z) { got += z[1] - z[0]; });
+            var pct = Math.min(99, Math.round(got / mse.duration * 100));
+            setXfer('Réception ' + pct + ' %');
+            if (!$('drop').hidden) $('prog').value = pct;
+          }
+        }
+      }
+      pump(tr);
+    }
+    function finish() {
+      done = true;
+      if (rmode === 'mse' && mse) {
+        mse.ended = true;
+        setXfer('');
+        if (curQ === 'orig') addMsg('', 'Vidéo entièrement reçue.', 'sys');
+        Object.keys(mse.tracks).forEach(function (k) { pump(mse.tracks[k]); });
+      } else if (rmode === 'classic' && meta) {
+        var blob = new Blob(blobs.concat(parts), { type: mimeFor(meta.name, meta.type) });
+        parts = []; blobs = [];
+        setXfer('');
+        startVideo(URL.createObjectURL(blob), meta.name + ' · ' + fmtSize(meta.size));
+        addMsg('', 'Vidéo reçue. Vous pouvez lancer la lecture.', 'sys');
+        broadcast({ t: 'need' });
+      }
+      if (meta) haveKey = meta.name + '|' + meta.size;      // mémorisé : une reconnexion ne redemande pas la vidéo
+    }
+  }
+
+  /* ---------- alimentation du lecteur (MediaSource) ---------- */
+  // Les morceaux reçus sont rangés par temps. On ajoute au lecteur ceux qui sont proches de la position de lecture :
+  // après un saut, les morceaux de la nouvelle position passent donc en premier.
+  function pickSeg(tr) {
+    var ph = video.currentTime, lo = ph - 20, hi = ph + mse.ahead;
+    for (var i = 0; i < tr.segs.length; i++) {
+      var s = tr.segs[i];
+      if (s.ap || s.b <= lo) continue;
+      if (s.a > hi) break;
+      return s;
+    }
+    return null;
+  }
+  function pump(tr) {
+    if (!mse || mse.tracks[tr.id] !== tr || !tr.sb || tr.busy || mse.ms.readyState === 'closed') return;
+    var sb = tr.sb;
+    if (sb.updating) return;
+    if (!tr.initDone) {
+      if (!tr.initBlob) return;
+      tr.busy = true; tr.pend = 'init';
+      tr.initBlob.arrayBuffer().then(function (ab) {
+        try { sb.appendBuffer(ab); } catch (e) { tr.busy = false; tr.pend = null; setTimeout(function () { pump(tr); }, 500); }
+      });
+      return;
+    }
+    var seg = pickSeg(tr);
+    if (!seg) { maybeEnd(); return; }
+    tr.busy = true; tr.pend = 'seg'; tr.cur = seg;
+    seg.blob.arrayBuffer().then(function (ab) {
+      try { sb.appendBuffer(ab); }
+      catch (e) {
+        tr.busy = false; tr.pend = null;
+        if (e.name === 'QuotaExceededError') evict(tr);
+        else { seg.fails++; if (seg.fails > 2) seg.ap = true; }
+        setTimeout(function () { pump(tr); }, 600);
+      }
+    });
+  }
+  // mémoire du lecteur pleine : on retire d'abord ce qui est loin derrière, sinon ce qui est loin devant
+  function evict(tr) {
+    var sb = tr.sb;
+    if (!sb || sb.updating || tr.busy || !sb.buffered.length) return;
+    var t = video.currentTime, bs = sb.buffered.start(0), be = sb.buffered.end(sb.buffered.length - 1);
+    tr.busy = true; tr.pend = 'rm';
+    try {
+      if (bs < t - 20) {
+        sb.remove(bs, t - 20);
+        tr.segs.forEach(function (s) { if (s.b <= t - 20) s.ap = false; });
+      } else if (be > t + 40) {
+        mse.ahead = Math.max(30, (be - t) * 0.6);
+        sb.remove(t + mse.ahead, be);
+        tr.segs.forEach(function (s) { if (s.a >= t + mse.ahead) s.ap = false; });
+      } else { tr.busy = false; tr.pend = null; }
+    } catch (e) { tr.busy = false; tr.pend = null; }
+  }
+  function allAppended() {
+    return Object.keys(mse.tracks).every(function (k) {
+      var t = mse.tracks[k];
+      return t.sb && !t.busy && !t.sb.updating && !pickSeg(t);
+    });
+  }
+  // La fin de flux est signalée seulement quand on approche de la fin du film :
+  // la durée du lecteur n'est donc pas modifiée en pleine lecture.
+  function maybeEnd() {
+    if (!mse || !mse.ended || mse.eosDone || mse.ms.readyState !== 'open') return;
+    if (!allAppended()) return;
+    if (mse.duration - video.currentTime > 25) return;
+    try { mse.ms.endOfStream(); mse.eosDone = true; } catch (e) {}
+  }
+  function kick() {
+    if (!mse) return;
+    Object.keys(mse.tracks).forEach(function (k) { pump(mse.tracks[k]); });
+  }
+  // zones de temps réellement reçues pour une piste (fusionnées) — sert au pourcentage et au diagnostic
+  function covRanges(tr) {
+    var r = [];
+    tr.segs.forEach(function (s) { var l = r[r.length - 1]; if (l && s.a <= l[1] + 0.15) l[1] = Math.max(l[1], s.b); else r.push([s.a, s.b]); });
+    return r;
+  }
+  function rangesStr(r) { return r.map(function (x) { return Math.round(x[0]) + '–' + Math.round(x[1]) + ' s'; }).join(' ; ') || 'rien'; }
+  function bufStr(b) { var r = []; for (var i = 0; i < b.length; i++) r.push([b.start(i), b.end(i)]); return rangesStr(r); }
+  // si la lecture reste figée avec une qualité convertie, on écrit ce qui a été reçu et ce que le lecteur a en mémoire
+  var stallSince = 0, lastDiag = 0;
+  setInterval(function () {
+    if (!mse || !hasVideo || video.paused || video.ended || video.readyState >= 3) { stallSince = 0; return; }
+    var now = Date.now(); if (!stallSince) stallSince = now;
+    if (now - stallSince < 8000 || now - lastDiag < 40000 || curQ === 'orig') return;
+    lastDiag = now;
+    var parts = [];
+    Object.keys(mse.tracks).forEach(function (k) { var t = mse.tracks[k]; parts.push((t === mse.vtrack ? 'image' : 'son') + ' reçu : ' + rangesStr(covRanges(t)) + (t.sb ? ' · en mémoire : ' + bufStr(t.sb.buffered) : '')); });
+    try { console.log('[qualité] lecture figée à ' + Math.round(video.currentTime) + ' s (état ' + video.readyState + '). ' + parts.join(' | ')); } catch (x) {}
+  }, 1000);
+
+  // range un morceau reçu à sa place (par temps) ; false si on l'avait déjà
+  function addSeg(tr, a, b, blob) {
+    var arr = tr.segs, i = arr.length;
+    while (i > 0 && arr[i - 1].a > a) i--;
+    var p = arr[i - 1], q = arr[i];
+    if (p && Math.abs(p.a - a) < 0.002 && b <= p.b + 0.002) return false;
+    if (q && Math.abs(q.a - a) < 0.002 && b <= q.b + 0.002) return false;
+    arr.splice(i, 0, { a: a, b: b, blob: blob, ap: false, fails: 0 });
+    return true;
+  }
+  function haveData(tr, t) {
+    for (var i = 0; i < tr.segs.length; i++) { if (t >= tr.segs[i].a - 0.1 && t <= tr.segs[i].b + 0.1) return true; }
+    return false;
+  }
+  // la position de lecture n'a pas encore été reçue : on demande à l'envoyeur de repartir de là
+  function ensureData() {
+    if (!mse || mse.ended || !fileConn || !fileConn.open) return;
+    var vt = mse.vtrack;
+    if (!vt || !vt.segs.length) return;
+    var t = video.currentTime;
+    if (haveData(vt, t)) return;
+    var now = Date.now();
+    if (Math.abs(t - lastReq.t) < 3 && now - lastReq.at < 4000) return;
+    lastReq = { t: t, at: now };
+    try { fileConn.send(JSON.stringify({ k: 'seek', time: t })); } catch (e) {}
+  }
+  setInterval(function () {
+    if (mse) { kick(); if (video.readyState < 3) ensureData(); }
+    maybeEnd();
+  }, 1000);
+
+  function onSeekish() { if (mse) { kick(); ensureData(); } }
+  video.addEventListener('seeking', onSeekish);
+  video.addEventListener('waiting', onSeekish);
+  video.addEventListener('loadeddata', function () { if (hasVideo) { $('drop').hidden = true; } });
+  video.addEventListener('loadedmetadata', function () {
+    if (mse && !mse.reported && video.videoWidth && !localFile) {
+      mse.reported = true;
+    }
+    renderQ();
+  });
+  video.addEventListener('resize', function () { renderQ(); });
+
+  // petit trou entre deux morceaux (son ou image) : on saute par-dessus au lieu de rester bloqué
+  setInterval(function () {
+    if (!mse || video.paused || video.seeking || video.readyState >= 3) return;
+    var t = video.currentTime, b = video.buffered;
+    for (var i = 0; i < b.length; i++) {
+      if (b.start(i) > t && b.start(i) - t < 1.5) { video.currentTime = b.start(i) + 0.05; break; }
+    }
+  }, 400);
+
+  video.addEventListener('error', function () {
+    var e = video.error;
+    if (!e || !hasVideo) return;
+    // lecture pendant la réception impossible pour cette vidéo : on demande l'envoi complet, une seule fois
+    if (mse && !localFile) {
+      recvGen++; haveKey = '';
+      resetVideo();
+      setDrop('Réception de la vidéo', "La lecture en direct ne marche pas avec cette vidéo. Nouvel envoi complet en cours…", false, 0);
+      addMsg('', "La lecture pendant le téléchargement ne marche pas avec cette vidéo : passage à l'envoi complet.", 'sys');
+      broadcast({ t: 'classic' });
+      return;
+    }
+    if (Date.now() - lastErrAt < 4000) return;
+    lastErrAt = Date.now();
+    if (e.code === 4) {
+      addMsg('', "Ce fichier ne peut pas être lu par ce navigateur : format ou codec non pris en charge (souvent H.265/HEVC, ou MKV avec un codec rare). Convertis-le en MP4 (H.264 + AAC), ou essaie avec un autre navigateur.", 'sys');
+    } else {
+      addMsg('', 'Erreur de lecture (code ' + e.code + (e.message ? ' : ' + e.message : '') + '). Si elle continue, demande à ton ami de renvoyer la vidéo.', 'sys');
+    }
+  });
+
+  /* ---------- lecture locale et synchronisation ---------- */
+  function resetVideo() {
+    applyingUntil = Date.now() + 3000;                                   // la pause qui suit est faite par l'appli, pas par la personne : on ne l'envoie pas aux autres
+    hasVideo = false; mse = null; pendingState = null;
+    try { video.pause(); } catch (e) {}
+    video.playbackRate = 1;
+    if (video.src) { try { URL.revokeObjectURL(video.src); } catch (e) {} video.removeAttribute('src'); video.load(); }
+  }
+  function armPending() {
+    video.addEventListener('loadedmetadata', function once() {
+      video.removeEventListener('loadedmetadata', once);
+      if (pendingState) { var p = pendingState; pendingState = null; applyState(p); }
+    });
+  }
+  function startVideo(url, label) {
+    resetVideo();
+    video.src = url;
+    hasVideo = true;
+    $('drop').hidden = true;
+    $('fname').textContent = label;
+    armPending();
+  }
+  function loadFile(f) {
+    if (!f) return;
+    stopYT(true);
+    fileToken++; sending = {}; haveKey = '';
+    localFile = f;
+    classicFor = {};
+    qGen++; qCache = {}; qJobs = {}; qChain = Promise.resolve(); sendKey = {}; qOwnerNote = ''; renderQ();   // nouveau film : les anciennes versions converties ne servent plus
+    startVideo(URL.createObjectURL(typedBlob(f)), f.name + ' · ' + fmtSize(f.size));
+    broadcast({ t: 'source', name: f.name });
+    openConns().forEach(function (c) { sendBest(c.peer); });
+    if (!openConns().length) addMsg('', "En attente d'un ami : la vidéo lui sera envoyée dès qu'il rejoint.", 'sys');
+    else addMsg('', "Envoi de la vidéo à ton ami. Si le lecteur de ton ami attend des données, utilise « Synchroniser » pour vous recaler.", 'sys');
+  }
+  function tryPlay() {
+    var p = video.play();
+    if (p && p.catch) p.catch(function () { $('tap').hidden = false; });
+  }
+  function stateMsg() { return { t: 'state', playing: !video.paused, time: video.currentTime }; }
+
+  // action d'une personne (lecture, pause, saut) : envoyée aux autres
+  function emit(force) {
+    if (!hasVideo) return;
+    if (!force && Date.now() < switchingUntil) return;                    // changement de qualité en cours : aucune pause/saut n'est envoyé aux autres
+    if (!force && (!userRecent() || Date.now() < applyingUntil)) return;
+    broadcast(stateMsg());
+  }
+  ['play', 'pause', 'seeked'].forEach(function (ev) { video.addEventListener(ev, function () { emit(false); }); });
+  video.addEventListener('playing', function () { $('tap').hidden = true; switchingUntil = 0; });
+
+  // état reçu après une action de l'autre personne : on s'aligne tout de suite
+  function applyState(s) {
+    remote = { playing: s.playing, time: s.time, at: performance.now(), known: true };
+    if (!hasVideo || video.readyState < 1) { pendingState = s; return; }
+    applyingUntil = Date.now() + 1200;
+    if (Math.abs(video.currentTime - s.time) > 0.7) video.currentTime = s.time;
+    video.playbackRate = 1;
+    if (s.playing && video.paused) tryPlay();
+    else if (!s.playing && !video.paused) video.pause();
+  }
+
+  // la source (celui qui a le fichier) envoie sa position toutes les 2,5 s : les autres se recalent doucement
+  function sendHeartbeat() { broadcast({ t: 'hb', playing: !video.paused, time: video.currentTime }); }
+  setInterval(function () {
+    if (!localFile || !hasVideo || !openConns().length) return;
+    sendHeartbeat();
+  }, 2500);
+
+  function onHeartbeat(s) {
+    remote = { playing: s.playing, time: s.time, at: performance.now(), known: true };
+    if (localFile) return;
+    if (!hasVideo || video.readyState < 1) { pendingState = s; return; }
+    if (userRecent()) return;
+    var diff = video.currentTime - s.time;
+    if (s.playing) {
+      if (video.paused) tryPlay();
+      if (Math.abs(diff) > 3) { applyingUntil = Date.now() + 1500; video.currentTime = s.time; video.playbackRate = 1; }
+      else if (Math.abs(diff) > 0.35 && video.readyState >= 3) { video.playbackRate = diff > 0 ? 0.94 : 1.06; }
+      else if (video.playbackRate !== 1) { video.playbackRate = 1; }
+    } else {
+      video.playbackRate = 1;
+      if (!video.paused) { applyingUntil = Date.now() + 1500; video.pause(); }
+      if (Math.abs(diff) > 1.5) { applyingUntil = Date.now() + 1500; video.currentTime = s.time; }
+    }
+  }
+
+  // pause que personne n'a demandée alors que la source joue : on reprend
+  video.addEventListener('pause', function () {
+    if (localFile || userRecent()) return;
+    if (remote.known && remote.playing && performance.now() - remote.at < 6000) {
+      setTimeout(function () {
+        if (video.paused && !userRecent() && remote.playing && performance.now() - remote.at < 8000) tryPlay();
+      }, 300);
+    }
+  });
+
+  // garde l'écran allumé pendant la lecture (téléphone)
+  function keepAwake() {
+    try {
+      if (navigator.wakeLock && !wakeLock) {
+        navigator.wakeLock.request('screen').then(function (l) {
+          wakeLock = l; l.addEventListener('release', function () { wakeLock = null; });
+        }, function () {});
+      }
+    } catch (e) {}
+  }
+  video.addEventListener('play', keepAwake);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && !video.paused) keepAwake(); });
+
+  /* =====================================================
+     QUALITÉ DE LECTURE
+     - Original : le fichier est transmis tel quel (aucun réencodage ; seul le découpage en fragments pour lire pendant la réception).
+     - 1080p / 720p / 480p / 360p : la personne qui a le fichier le convertit (WebCodecs, H.264, son conservé tel quel),
+       puis l'envoie à celui qui l'a demandé. Chacun choisit sa qualité ; la lecture reste synchronisée.
+     - Le bouton est intégré à la barre du lecteur (Plyr).
+     ===================================================== */
+  var QUALS = {
+    orig: { label: 'Original' },
+    '1080': { label: '1080p', h: 1080, bps: 5000000 },
+    '720': { label: '720p', h: 720, bps: 2500000 },
+    '480': { label: '480p', h: 480, bps: 1200000 },
+    '360': { label: '360p', h: 360, bps: 700000 },
+    '240': { label: '240p', h: 240, bps: 400000 },
+    '144': { label: '144p', h: 144, bps: 200000 }
+  };
+  var QORDER = ['orig', '1080', '720', '480', '360', '240', '144'];
+  var myQ = 'orig', curQ = 'orig', origH = 0, qNote = {}, qUI = null, qChosenAt = 0;
+  try { localStorage.removeItem('samaraf-quality'); } catch (e) {}   // toujours Original au départ
+  function qLabel(k) { return (QUALS[k] || QUALS.orig).label; }
+  function saveQ() { /* la qualité n'est plus mémorisée : on repart toujours d'Original */ }
+
+  /* ---------- interface ---------- */
+  function mountQualityUI() {
+    if (!plyrPlayer || qUI) return;
+    var ctrls = plyrPlayer.elements && plyrPlayer.elements.controls;
+    if (!ctrls) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'plyr__menu q-menu';
+    wrap.innerHTML =
+      '<button class="plyr__control q-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Qualité de lecture"><span class="q-cur">Orig.</span></button>' +
+      '<div class="plyr__menu__container q-pop" hidden><div><div role="menu" class="q-list"></div></div></div>';
+    var gear = ctrls.querySelector('.plyr__menu'), fs = ctrls.querySelector('[data-plyr="fullscreen"]');
+    ctrls.insertBefore(wrap, gear || fs || null);
+    qUI = { wrap: wrap, btn: wrap.querySelector('.q-btn'), cur: wrap.querySelector('.q-cur'), pop: wrap.querySelector('.q-pop'), list: wrap.querySelector('.q-list') };
+    function setOpen(o) { qUI.pop.hidden = !o; qUI.btn.setAttribute('aria-expanded', o ? 'true' : 'false'); }
+    qUI.close = function () { setOpen(false); };
+    qUI.btn.addEventListener('click', function (e) { e.stopPropagation(); renderQ(); setOpen(qUI.pop.hidden); });
+    qUI.list.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-q]');
+      if (!b || b.disabled) return;
+      e.stopPropagation(); setOpen(false); chooseQuality(b.getAttribute('data-q'));
+    });
+    document.addEventListener('click', function (e) { if (!qUI.pop.hidden && !wrap.contains(e.target)) setOpen(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !qUI.pop.hidden) setOpen(false); });
+    try { plyrPlayer.on('controlshidden', function () { setOpen(false); }); } catch (e) {}
+    renderQ();
+  }
+  function renderQ() {
+    if (!qUI) return;
+    var owner = !!localFile, html = '<div class="q-title">Qualité de lecture</div>';
+    // ce qui est affiché = ce qui est vraiment lu ; le choix qu'on vient de faire s'affiche en attendant son arrivée
+    var shown = owner ? 'orig' : ((hasVideo && myQ !== curQ && Date.now() - qChosenAt < 120000) ? myQ : (hasVideo ? curQ : myQ));
+    QORDER.forEach(function (k) {
+      if (k !== 'orig' && origH && QUALS[k].h >= origH - 8) return;               // inutile de proposer plus grand que la vidéo
+      var on = (k === shown), val = '';
+      if (k === 'orig' && origH) val = origH + 'p';
+      html += '<button type="button" role="menuitemradio" class="plyr__control" data-q="' + k + '" aria-checked="' + (on ? 'true' : 'false') + '"' +
+        (owner && k !== 'orig' ? ' disabled' : '') + '><span>' + QUALS[k].label + '<span class="plyr__menu__value">' + val + '</span></span></button>';
+    });
+    qUI.list.innerHTML = html;
+    // hôte uniquement : qualité choisie par chaque personne de la salle
+    if (isHost) {
+      var ps = openConns().filter(function (c) { return !c.dead; });
+      if (ps.length) {
+        var t = document.createElement('div'); t.className = 'q-title q-sep'; t.textContent = 'Dans la salle'; qUI.list.appendChild(t);
+        ps.forEach(function (c) {
+          var r = document.createElement('div'); r.className = 'q-peer';
+          var n = document.createElement('span'); n.className = 'q-pn'; n.textContent = c.peerName || 'Un ami';
+          var v = document.createElement('span'); v.className = 'q-pq'; v.textContent = qLabel(c.q || 'orig');
+          r.appendChild(n); r.appendChild(v); qUI.list.appendChild(r);
+        });
+      }
+    }
+    qUI.cur.textContent = shown === 'orig' ? 'Orig.' : QUALS[shown].label;
+  }
+  if (plyrPlayer) { mountQualityUI(); if (!qUI) { try { plyrPlayer.on('ready', mountQualityUI); } catch (e) {} } }
+
+  function chooseQuality(k) {
+    if (!QUALS[k] || k === myQ) return;
+    if (localFile && k !== 'orig') return;
+    myQ = k; qNote = {}; qChosenAt = Date.now(); saveQ(); renderQ();
+    if (!localFile) broadcast({ t: 'quality', q: k, pid: peer && peer.id, at: hasVideo ? Math.max(0, video.currentTime - 2) : 0 });
+  }
+  // une nouvelle version de la vidéo arrive (qualité reçue + hauteur de la vidéo d'origine)
+  function onStreamQuality(q, oh, switched) {
+    var changed = (q !== curQ);
+    curQ = q; if (oh) origH = oh;
+    renderQ();
+  }
+  // retour de la personne qui a le fichier : préparation en cours, impossible, ou déjà dans cette qualité
+  function onQState(d) {
+    if (localFile || d.q !== myQ) return;
+    if (d.st === 'prep') {
+      var first = !qNote[d.q]; qNote[d.q] = d.pct + ' %';
+      renderQ();
+    } else if (d.st === 'same') {
+      backToOriginal();
+    } else if (d.st === 'fail') {
+      try { console.warn('[qualité] ' + qLabel(d.q) + ' indisponible : ' + (d.msg || 'erreur')); } catch (x) {}
+      backToOriginal();
+    }
+  }
+  function backToOriginal() { myQ = 'orig'; qNote = {}; saveQ(); renderQ(); broadcast({ t: 'quality', q: 'orig', pid: peer && peer.id }); }
+
+  /* ---------- envoi : qui reçoit quoi ---------- */
+  function sendBest(pid) {
+    var k = qFor[pid] || 'orig';
+    if (k !== 'orig') serveQuality(pid, k);                          // qualité réduite : envoyée en direct pendant la conversion
+    else sendFileTo(pid, localFile, 'orig');
+  }
+  function serveQuality(pid, key, hint) {
+    if (!localFile || !peer) return;
+    if (!QUALS[key]) key = 'orig';
+    qFor[pid] = key;
+    if (sendKey[pid] === key) return;
+    if (key === 'orig') { sendFileTo(pid, localFile, 'orig', true); return; }
+    if (!canTranscode()) { qFor[pid] = 'orig'; broadcast({ t: 'qstate', q: key, st: 'fail', msg: "le navigateur de ton ami ne sait pas convertir la vidéo" }); return; }
+    var gen = qGen, S = getQuality(key, hint);
+    S.fresh = false;
+    S.ready.then(function () {
+      if (gen !== qGen || !localFile) return;
+      if (qFor[pid] !== key || sendKey[pid] === key) return;
+      sendFileTo(pid, S, key, true);                                 // on remplace l'envoi en cours par le flux converti
+    }, function (e) {
+      if (gen !== qGen) return;
+      if (e && e.same) { qFor[pid] = 'orig'; broadcast({ t: 'qstate', q: key, st: 'same' }); }
+    });
+  }
+  function qFailed(key, e) {
+    try { console.error('[qualité] conversion échouée', e); } catch (x) {}
+    var detail = (e && (e.message || e.name)) ? String(e.message || e.name).slice(0, 120) : String(e).slice(0, 120);
+    var why = e && e.message === 'mp4' ? 'fichier MP4 illisible pour la conversion' : e && e.message === 'decoder' ? 'ce format vidéo ne peut pas être converti ici' : e && e.message === 'audio' ? 'son non compatible (il faut de l\'AAC)' : e && e.message === 'encoder' ? 'conversion H.264 non prise en charge par ce navigateur' : 'erreur de conversion : ' + detail;
+    Object.keys(qFor).forEach(function (pid) { if (qFor[pid] === key) qFor[pid] = 'orig'; });
+    qOwnerNote = '';
+    broadcast({ t: 'qstate', q: key, st: 'fail', msg: why });
+    renderQ();
+  }
+  // un flux converti par qualité, partagé entre tous ceux qui le demandent (une seule conversion à la fois)
+  function makeStream(f, key) {
+    var S = { isStream: true, key: key, fresh: true, name: f.name.replace(/\.[^.]+$/, '') + ' (' + qLabel(key) + ').mp4', size: 0, duration: 0, oh: 0, tracks: null, items: [], done: false, error: null, waiters: [] };
+    S.notify = function () { var w = S.waiters; S.waiters = []; w.forEach(function (r) { r(); }); };
+    S.wait = function () { return new Promise(function (r) { S.waiters.push(r); }); };
+    S.ready = new Promise(function (res, rej) { S.resolveReady = res; S.rejectReady = rej; });
+    S.ready.catch(function () {});
+    return S;
+  }
+  function qWanted(key) { return Object.keys(qFor).some(function (p) { return qFor[p] === key; }); }
+  function getQuality(key, hint) {
+    var S = qCache[key];
+    if (S) return S;
+    var gen = qGen, f = localFile, lastSent = -1;
+    S = qCache[key] = makeStream(f, key);
+    S.startHint = hint > 0 ? hint : 0;                                 // on commence près de l'endroit où l'ami regarde
+    qChain = qChain.catch(function () {}).then(function () {
+      if (gen !== qGen || !qWanted(key)) throw new Error('stop');
+      return transcodeStream(S, f, function (pct) {
+        if (pct !== lastSent && (pct - lastSent >= 2 || pct >= 99)) { lastSent = pct; broadcast({ t: 'qstate', q: key, st: 'prep', pct: pct }); }
+      }, function () { return gen === qGen && qWanted(key); });
+    }).then(function () {
+      S.done = true; S.notify(); qOwnerNote = ''; renderQ();
+    }, function (e) {
+      S.error = e; S.notify(); S.rejectReady(e);
+      if (!(e && e.same) && qCache[key] === S) delete qCache[key];   // échec : on pourra réessayer ; « même taille » : on garde la réponse
+      if (gen === qGen && !(e && (e.same || e.message === 'stop'))) qFailed(key, e);
+    });
+    return S;
+  }
+
+  /* ---------- écriture de fragments MP4 (fMP4) : un fichier d'initialisation par piste + des fragments ---------- */
+  var FM = (function () {
+    function u8(n) { return [n & 255]; }
+    function u16(n) { return [(n >> 8) & 255, n & 255]; }
+    function u32(n) { return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255]; }
+    function u64(n) { return u32(Math.floor(n / 4294967296)).concat(u32(n >>> 0)); }
+    function s4(t) { return [t.charCodeAt(0), t.charCodeAt(1), t.charCodeAt(2), t.charCodeAt(3)]; }
+    function cat(parts) {
+      var n = 0, i, o, p;
+      for (i = 0; i < parts.length; i++) n += parts[i].length;
+      o = new Uint8Array(n); p = 0;
+      for (i = 0; i < parts.length; i++) { o.set(parts[i], p); p += parts[i].length; }
+      return o;
+    }
+    function box(type) {
+      var parts = [], n = 8;
+      for (var i = 1; i < arguments.length; i++) { var a = arguments[i]; a = (a instanceof Uint8Array) ? a : new Uint8Array(a); parts.push(a); n += a.length; }
+      return cat([new Uint8Array(u32(n).concat(s4(type))), cat(parts)]);
+    }
+    function full(type, ver, flags) {
+      var a = [new Uint8Array(u8(ver).concat([(flags >> 16) & 255, (flags >> 8) & 255, flags & 255]))];
+      for (var i = 3; i < arguments.length; i++) a.push(arguments[i]);
+      return box.apply(null, [type].concat(a));
+    }
+    function zeros(n) { return new Uint8Array(n); }
+    var MATRIX = new Uint8Array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x40, 0, 0, 0]);
+    function ftyp() { return box('ftyp', new Uint8Array(s4('isom').concat(u32(512), s4('isom'), s4('iso6'), s4('avc1'), s4('mp41')))); }
+    function mvhd() {
+      return full('mvhd', 0, 0, new Uint8Array([].concat(u32(0), u32(0), u32(1000), u32(0), u32(0x00010000), u16(0x0100), u16(0))), zeros(8), MATRIX, zeros(24), new Uint8Array(u32(3)));
+    }
+    function trak(id, w, h, isVideo, timescale, entry) {
+      var tkhd = full('tkhd', 0, 3, new Uint8Array([].concat(u32(0), u32(0), u32(id), u32(0), u32(0))), zeros(8),
+        new Uint8Array([].concat(u16(0), u16(0), u16(isVideo ? 0 : 0x0100), u16(0))), MATRIX, new Uint8Array(u32(w << 16).concat(u32(h << 16))));
+      var mdhd = full('mdhd', 0, 0, new Uint8Array([].concat(u32(0), u32(0), u32(timescale), u32(0), u16(0x55c4), u16(0))));
+      var hdlr = full('hdlr', 0, 0, new Uint8Array([].concat(u32(0), s4(isVideo ? 'vide' : 'soun'))), zeros(12), new Uint8Array((isVideo ? 'VideoHandler' : 'SoundHandler').split('').map(function (c) { return c.charCodeAt(0); }).concat([0])));
+      var mhd = isVideo ? full('vmhd', 0, 1, zeros(8)) : full('smhd', 0, 0, zeros(4));
+      var dinf = box('dinf', full('dref', 0, 0, new Uint8Array(u32(1)), full('url ', 0, 1)));
+      var stbl = box('stbl', full('stsd', 0, 0, new Uint8Array(u32(1)), entry), full('stts', 0, 0, new Uint8Array(u32(0))),
+        full('stsc', 0, 0, new Uint8Array(u32(0))), full('stsz', 0, 0, new Uint8Array(u32(0).concat(u32(0)))), full('stco', 0, 0, new Uint8Array(u32(0))));
+      return box('trak', tkhd, box('mdia', mdhd, hdlr, box('minf', mhd, dinf, stbl)));
+    }
+    function trex(id) { return full('trex', 0, 0, new Uint8Array([].concat(u32(id), u32(1), u32(0), u32(0), u32(0)))); }
+    // piste vidéo H.264 : avcC = description donnée par l'encodeur
+    function initVideo(id, w, h, avcC, timescale) {
+      var entry = box('avc1', zeros(6), new Uint8Array(u16(1)), zeros(16), new Uint8Array(u16(w).concat(u16(h), u32(0x00480000), u32(0x00480000), u32(0), u16(1))),
+        zeros(32), new Uint8Array(u16(0x0018).concat(u16(0xffff))), box('avcC', avcC));
+      return cat([ftyp(), box('moov', mvhd(), trak(id, w, h, true, timescale, entry), box('mvex', trex(id)))]);
+    }
+    // piste audio : « entry » = boîte mp4a complète recopiée de la vidéo d'origine
+    function initAudio(id, timescale, entry) {
+      return cat([ftyp(), box('moov', mvhd(), trak(id, 0, 0, false, timescale, entry), box('mvex', trex(id)))]);
+    }
+    // samples : [{ data: Uint8Array, dur: ticks, key: bool }]
+    function fragment(id, seq, baseTime, samples) {
+      var n = samples.length, i, trunBody = [];
+      trunBody.push(new Uint8Array(u32(n).concat(u32(0))));                 // nombre d'échantillons + data_offset (rempli après)
+      var rows = new Uint8Array(n * 12), dv = new DataView(rows.buffer), dsz = 0;
+      for (i = 0; i < n; i++) {
+        dv.setUint32(i * 12, samples[i].dur >>> 0);
+        dv.setUint32(i * 12 + 4, samples[i].data.length);
+        dv.setUint32(i * 12 + 8, samples[i].key ? 0x02000000 : 0x01010000);
+        dsz += samples[i].data.length;
+      }
+      var tfhd = full('tfhd', 0, 0x020000, new Uint8Array(u32(id)));
+      var tfdt = full('tfdt', 1, 0, new Uint8Array(u64(baseTime)));
+      var trun = full('trun', 0, 0x000701, trunBody[0], rows);
+      var mfhd = full('mfhd', 0, 0, new Uint8Array(u32(seq)));
+      var moof = box('moof', mfhd, box('traf', tfhd, tfdt, trun));
+      // data_offset = taille de moof + en-tête de mdat (8)
+      var off = moof.length + 8;
+      var offPos = moof.length - rows.length - 4;                           // position du data_offset dans trun
+      new DataView(moof.buffer, moof.byteOffset).setUint32(offPos, off);
+      var mdat = new Uint8Array(8 + dsz), p = 8;
+      new DataView(mdat.buffer).setUint32(0, 8 + dsz); mdat.set(s4('mdat'), 4);
+      for (i = 0; i < n; i++) { mdat.set(samples[i].data, p); p += samples[i].data.length; }
+      return cat([moof, mdat]);
+    }
+    // entrée audio AAC « mp4a » + esds, construite à partir de la configuration audio (ASC)
+    function audioEntry(channels, sampleRate, asc) {
+      var al = asc.length, dcl = 13 + 2 + al, esl = 3 + 2 + dcl + 3;
+      var esds = full('esds', 0, 0, new Uint8Array([].concat([0x03, esl], u16(0), [0], [0x04, dcl, 0x40, 0x15], [0, 0, 0], u32(0), u32(0), [0x05, al])), asc, new Uint8Array([0x06, 0x01, 0x02]));
+      return box('mp4a', zeros(6), new Uint8Array(u16(1)), zeros(8), new Uint8Array(u16(channels).concat(u16(16), u16(0), u16(0), u32((sampleRate & 0xffff) * 65536))), esds);
+    }
+    return { initVideo: initVideo, initAudio: initAudio, fragment: fragment, audioEntry: audioEntry };
+  })();
+
+  // Découpe en direct : la vidéo est coupée à chaque image clé (≈ 2 s), le son tous les ≈ 2 s ; chaque morceau est ajouté à S.items
+  // dès qu'il est prêt (le fichier d'initialisation de chaque piste passe en premier).
+  function makeSegmenter(S, o) {
+    var vbuf = [], abuf = [], vSeq = 1, aSeq = 1, haveInit = false, lastVdts = -1, aFirst = true;
+    function push(id, init, buf, a, b) { S.items.push({ id: id, init: init, buf: buf, a: a, b: b }); S.notify(); }
+    function hex(n) { return ('0' + n.toString(16)).slice(-2); }
+    function flushV(nextDts) {
+      if (!vbuf.length) return;
+      var samples = [], base = vbuf[0].dts, total = 0, last = vbuf.length - 1;
+      for (var i = 0; i <= last; i++) {
+        var dur = i < last ? vbuf[i + 1].dts - vbuf[i].dts : (nextDts !== null ? nextDts - vbuf[i].dts : (Math.round(vbuf[i].durUs * 0.09) || 3000));
+        dur = Math.max(1, dur); total += dur;
+        samples.push({ data: vbuf[i].data, dur: dur, key: vbuf[i].key });
+      }
+      vbuf = [];
+      push(1, false, FM.fragment(1, vSeq++, base, samples), base / 90000, (base + total) / 90000);
+      if (o.onVideoSeg) o.onVideoSeg(base / 90000, (base + total) / 90000);
+    }
+    function flushA(all) {
+      if (!haveInit || !o.audio) return;
+      var ts = o.audio.timescale;
+      while (abuf.length) {
+        var n = 0, d = 0, need = (aFirst ? 0.8 : 2) * ts;                // 1er morceau de son plus court : la lecture repart plus vite
+        while (n < abuf.length && d < need) { d += abuf[n].dur; n++; }
+        if (d < need && !all) return;
+        aFirst = false;
+        var part = abuf.splice(0, n), base = part[0].dts, sum = 0;
+        part.forEach(function (s) { sum += s.dur; });
+        push(2, false, FM.fragment(2, aSeq++, base, part.map(function (s) { return { data: s.data, dur: Math.max(1, s.dur), key: true }; })), base / ts, (base + sum) / ts);
+      }
+    }
+    return {
+      video: function (data, key, tsUs, durUs, avcC) {
+        if (!haveInit) {
+          if (!avcC) throw new Error('encoder');
+          var tracks = [{ id: 1, kind: 'video', mime: 'video/mp4; codecs="avc1.' + hex(avcC[1]) + hex(avcC[2]) + hex(avcC[3]) + '"', timescale: 90000 }];
+          push(1, true, FM.initVideo(1, o.w, o.h, avcC, 90000), 0, 0);
+          if (o.audio) {
+            tracks.push({ id: 2, kind: 'audio', mime: 'audio/mp4; codecs="' + o.audio.codec + '"', timescale: o.audio.timescale });
+            push(2, true, FM.initAudio(2, o.audio.timescale, FM.audioEntry(o.audio.channels, o.audio.sampleRate, o.audio.asc)), 0, 0);
+          }
+          haveInit = true;
+          o.onInit(tracks);
+          flushA(false);
+        }
+        var dts = Math.max(Math.round(tsUs * 0.09), lastVdts + 1); lastVdts = dts;     // 90 kHz, toujours croissant
+        if (key && vbuf.length) flushV(dts);
+        vbuf.push({ data: data, key: key, dts: dts, durUs: durUs });
+      },
+      audio: function (data, dts, dur) { abuf.push({ data: data, dts: dts, dur: dur }); flushA(false); },
+      cut: function () { flushV(null); flushA(true); lastVdts = -1; aFirst = true; },       // fin d'une session de conversion (fin du film, saut, ou zone déjà faite)
+      end: function () { flushV(null); flushA(true); }
+    };
+  }
+
+  /* ---------- conversion en direct (WebCodecs) : décodage → réduction → H.264 ; le son AAC est copié sans changement ---------- */
+  function canTranscode() { return !!(window.VideoDecoder && window.VideoEncoder && window.VideoFrame && window.EncodedVideoChunk && window.MP4Box && window.DataStream); }
+  function boxPayload(box) {                                             // contenu d'une « boîte » mp4 (sans son en-tête de 8 octets)
+    var ds = new DataStream(undefined, 0, DataStream.BIG_ENDIAN);
+    box.write(ds);
+    return new Uint8Array(ds.buffer, 8);
+  }
+  function videoDesc(mp4, id) {
+    var e = mp4.getTrackById(id).mdia.minf.stbl.stsd.entries[0], b = e.avcC || e.hvcC || e.vpcC || e.av1C;
+    return b ? boxPayload(b) : null;
+  }
+  function audioDesc(mp4, id) {
+    try {
+      var e = mp4.getTrackById(id).mdia.minf.stbl.stsd.entries[0], d = e.esds.esd.descs[0].descs[0].data;
+      return d && d.length ? new Uint8Array(d) : null;
+    } catch (x) { return null; }
+  }
+  async function transcodeStream(S, f, onPct, alive) {
+    var Q = QUALS[S.key], cfg = null, seg = null, covered = [], guard = 0, sess = null;
+    S.seekReq = null; S.cur = { a0: null, a1: null };
+    function addCovered(a, b) {
+      var na = a, nb = b, keep = [];
+      covered.forEach(function (z) {
+        if (z[1] >= na - 0.1 && z[0] <= nb + 0.1) { na = Math.min(na, z[0]); nb = Math.max(nb, z[1]); } else keep.push(z);
+      });
+      keep.push([na, nb]); keep.sort(function (x, y) { return x[0] - y[0]; });
+      covered = keep;
+    }
+    function covSum() { var n = 0, d = cfg ? cfg.dur : 1; covered.forEach(function (z) { n += Math.max(0, Math.min(z[1], d) - z[0]); }); return n; }
+    S.inCovered = function (t) { for (var i = 0; i < covered.length; i++) { if (t >= covered[i][0] - 0.1 && t <= covered[i][1] + 0.1) return true; } return false; };
+    // l'ami saute vers une partie pas encore convertie : la conversion repart de là, les trous sont comblés ensuite
+    S.requestSeek = function (t) {
+      if (!(t >= 0) || S.inCovered(t)) return;
+      if (S.lastRestart && Date.now() - S.lastRestart.at < 3000 && Math.abs(t - S.lastRestart.t) < 20) return;   // pas de relances en rafale
+      if (S.warmUntil && Date.now() < S.warmUntil && S.cur.a0 !== null && t >= S.cur.a0 - 0.1 && t <= S.cur.a0 + 40) return;   // reprise qui démarre : on la laisse finir
+      if (S.cur.a0 !== null && t >= S.cur.a0 - 0.1 && t <= S.cur.a1 + 5) return;
+      S.seekReq = t;
+    };
+    function nextGap() {
+      if (!covered.length) return 0;
+      if (covered[0][0] > 0.5) return 0;
+      if (covered[0][1] < Infinity) return covered[0][1];
+      return null;
+    }
+
+    async function runSession(startAt) {
+      var mp4 = MP4Box.createFile(), info = null, bad = null, err = null, vq = [], aq = [], lastDts = {}, lastV = startAt;
+      var v = null, a = null, dec = null, enc = null, cvs = null, ctx = null, nIn = 0, started = false, stopAt = Infinity, reachedEof = false;
+      var startUs = startAt * 1e6, sinceKey = 0, firstGop = true;
+      covered.forEach(function (z) { if (z[0] > startAt + 0.05 && z[0] < stopAt) stopAt = z[0]; });   // on s'arrête en rejoignant une zone déjà faite
+      sess = { a0: null };
+      S.cur = { a0: startAt, a1: startAt + 3 }; S.warmUntil = Date.now() + 20000;                          // la reprise est en cours : les demandes proches ne la relancent pas
+      function chk() { if (!alive()) throw new Error('stop'); if (err) throw err; }
+      mp4.onError = function () { bad = new Error('mp4'); };
+      mp4.onReady = function (i) { info = i; };
+      mp4.onSamples = function (id, user, samples) {
+        var q = (v && id === v.id) ? vq : aq;
+        for (var i = 0; i < samples.length; i++) {                      // on copie les champs utiles AVANT de libérer : la libération vide sample.data
+          var m = samples[i], dkey = 'd' + id;
+          if (lastDts[dkey] !== undefined && m.dts <= lastDts[dkey]) continue;   // échantillon déjà reçu (relecture) : ignoré
+          lastDts[dkey] = m.dts;
+          q.push({ data: m.data, is_sync: m.is_sync, cts: m.cts, dts: m.dts, duration: m.duration, timescale: m.timescale });
+        }
+        try { mp4.releaseUsedSamples(id, samples[samples.length - 1].number + 1); } catch (e) {}
+      };
+      async function setup() {
+        v = info.videoTracks[0]; a = info.audioTracks[0];
+        if (!v) throw new Error('decoder');
+        if (!cfg) {                                                      // réglages calculés une seule fois (première session)
+          var sw = v.video.width, sh = v.video.height, c0 = {};
+          if (sh <= Q.h + 8) { var sm = new Error('same'); sm.same = true; throw sm; }   // déjà aussi petite : on garde l'original
+          c0.h = Math.round(Q.h / 2) * 2; c0.w = Math.round(sw * Q.h / sh / 2) * 2;
+          c0.dur = Math.max(1, info.duration / info.timescale);
+          var fps = v.nb_samples / Math.max(1, v.duration / v.timescale);
+          if (!(fps >= 10 && fps <= 120)) fps = 30;
+          c0.gop = Math.max(12, Math.round(fps * 2));
+          c0.dcfg = { codec: v.codec, codedWidth: sw, codedHeight: sh };
+          var vd = videoDesc(mp4, v.id); if (vd) c0.dcfg.description = vd;
+          var ds = await VideoDecoder.isConfigSupported(c0.dcfg);
+          if (!ds || !ds.supported) throw new Error('decoder');
+          var tries = [['avc1.4d002a', 'no-preference'], ['avc1.42002a', 'no-preference'], ['avc1.4d002a', 'prefer-software'], ['avc1.42002a', 'prefer-software'], ['avc1.64002a', 'no-preference']];
+          for (var i = 0; i < tries.length && !c0.ecfg; i++) {
+            var c = { codec: tries[i][0], width: c0.w, height: c0.h, bitrate: Math.round(Q.bps * (fps > 40 ? 1.5 : 1)), framerate: Math.round(fps), latencyMode: 'realtime', hardwareAcceleration: tries[i][1], avc: { format: 'avc' } };
+            try { var es = await VideoEncoder.isConfigSupported(c); if (es && es.supported) c0.ecfg = c; } catch (e) {}
+          }
+          if (!c0.ecfg) throw new Error('encoder');
+          c0.ainfo = null;
+          if (a) {
+            var asc = audioDesc(mp4, a.id);
+            if (!/^mp4a\.40/i.test(a.codec) || !asc) throw new Error('audio');
+            c0.ainfo = { codec: a.codec, timescale: a.timescale, channels: a.audio.channel_count, sampleRate: a.audio.sample_rate, asc: asc };
+          }
+          S.duration = c0.dur; S.oh = sh; S.size = Math.round(c0.dur * (Q.bps / 8 + 16000));
+          seg = makeSegmenter(S, {
+            w: c0.w, h: c0.h, audio: c0.ainfo,
+            onInit: function (tracks) { S.tracks = tracks; S.resolveReady(); },
+            onVideoSeg: function (x, y) {
+              addCovered(x, y); S.warmUntil = 0;
+              if (sess && sess.a0 === null) sess.a0 = x;
+              S.cur = { a0: sess ? sess.a0 : x, a1: y };
+            }
+          });
+          cfg = c0;
+        }
+        cvs = (window.OffscreenCanvas ? new OffscreenCanvas(cfg.w, cfg.h) : Object.assign(document.createElement('canvas'), { width: cfg.w, height: cfg.h }));
+        ctx = cvs.getContext('2d'); ctx.imageSmoothingQuality = 'high';
+        enc = new VideoEncoder({
+          output: function (chunk, meta) {
+            try {
+              var data = new Uint8Array(chunk.byteLength); chunk.copyTo(data);
+              var desc = meta && meta.decoderConfig && meta.decoderConfig.description;
+              var avcC = desc ? new Uint8Array(desc.buffer ? desc.buffer.slice(desc.byteOffset, desc.byteOffset + desc.byteLength) : desc.slice(0)) : null;
+              seg.video(data, chunk.type === 'key', chunk.timestamp, chunk.duration || 0, avcC);
+            } catch (e) { err = e; }
+          },
+          error: function (e) { err = e; }
+        });
+        enc.configure(cfg.ecfg);
+        dec = new VideoDecoder({
+          output: function (frame) {
+            try {
+              if (frame.timestamp < startUs - 50000) { frame.close(); return; }   // avant la position demandée : sert seulement de référence au décodage, pas converti
+              ctx.drawImage(frame, 0, 0, cfg.w, cfg.h);
+              var nf = new VideoFrame(cvs, { timestamp: frame.timestamp, duration: frame.duration || undefined });
+              var kf = nIn === 0 || sinceKey >= (firstGop ? Math.round(cfg.gop / 2) : cfg.gop);   // 1er morceau plus court : la lecture repart plus vite
+              if (kf && nIn > 0) firstGop = false;
+              sinceKey = kf ? 1 : sinceKey + 1; nIn++;
+              enc.encode(nf, { keyFrame: kf });
+              nf.close();
+            } catch (e) { err = e; }
+            frame.close();
+          },
+          error: function (e) { err = e; }
+        });
+        dec.configure(cfg.dcfg);
+        mp4.setExtractionOptions(v.id, null, { nbSamples: 25 });
+        if (a) mp4.setExtractionOptions(a.id, null, { nbSamples: 50 });
+      }
+      async function drain() {
+        while (aq.length) { var as = aq.shift(); seg.audio(new Uint8Array(as.data), as.dts, as.duration); }
+        while (vq.length) {
+          chk();
+          if (S.seekReq !== null) return;
+          while (dec.decodeQueueSize > 20 || enc.encodeQueueSize > 12) { await sleep(4); chk(); if (S.seekReq !== null) return; }
+          var sm = vq.shift();
+          dec.decode(new EncodedVideoChunk({ type: sm.is_sync ? 'key' : 'delta', timestamp: Math.round(1e6 * sm.cts / sm.timescale), duration: Math.round(1e6 * sm.duration / sm.timescale), data: sm.data }));
+          lastV = sm.cts / sm.timescale;
+          if (lastV >= stopAt) { vq.length = 0; aq.length = 0; return; }
+        }
+        onPct(Math.max(0, Math.min(99, Math.round(covSum() / (cfg ? cfg.dur : 1) * 100))));
+      }
+      try {
+        var off = 0, SL = 4 * 1048576;
+        for (;;) {
+          chk(); if (bad) throw bad;
+          if (S.seekReq !== null || lastV >= stopAt) break;
+          if (off >= f.size) { reachedEof = true; break; }
+          var len = Math.min(SL, f.size - off);
+          var ab = await f.slice(off, off + len).arrayBuffer();
+          ab.fileStart = off;
+          var next = mp4.appendBuffer(ab);
+          if (bad) throw bad;
+          if (info && !started) {
+            started = true;
+            await setup();
+            mp4.start();
+            off = mp4.seek(startAt, true).offset;
+          } else off = (typeof next === 'number' && next > off + len) ? next : off + len;
+          if (started) await drain();
+        }
+        if (!started) { if (S.seekReq !== null) return 'seek'; throw new Error('mp4'); }
+        if (reachedEof) { mp4.flush(); await drain(); }
+        await dec.flush(); chk();
+        await enc.flush(); chk();
+        seg.cut();
+        if (reachedEof) addCovered(sess.a0 !== null ? sess.a0 : startAt, Infinity);   // jusqu'à la fin du film
+        return S.seekReq !== null ? 'seek' : 'end';
+      } finally {
+        try { if (dec && dec.state !== 'closed') dec.close(); } catch (e) {}
+        try { if (enc && enc.state !== 'closed') enc.close(); } catch (e) {}
+      }
+    }
+
+    var startAt = Math.max(0, S.startHint || 0);
+    if (startAt < 3) startAt = 0;
+    for (;;) {
+      if (!alive()) throw new Error('stop');
+      var r = await runSession(startAt);
+      if (r === 'seek') {
+        var q = S.seekReq; S.seekReq = null;
+        if (!S.inCovered(q)) {
+          startAt = q; S.lastRestart = { at: Date.now(), t: q };
+          continue;
+        }
+      }
+      var g = nextGap();
+      if (g === null || ++guard > 400) break;
+      startAt = g;
+    }
+    onPct(100);
+  }
+
+  // envoi d'un flux converti : chaque morceau part dès qu'il existe ; le lecteur de l'ami démarre sans attendre la fin
+  async function sendQStream(c, tok, st, S) {
+    var dc = c.dataChannel, i = 0;
+    st.seek = function (t) { if (S.requestSeek) S.requestSeek(t); };       // saut de l'ami : la conversion repart de là
+    await S.ready;
+    c.send(JSON.stringify({ k: 'init', name: S.name, size: S.size, duration: S.duration, tracks: S.tracks, q: S.key, oh: S.oh }));
+    for (;;) {
+      checkAlive(c, tok);
+      if (st.fallback) throw new Error('fb');
+      if (i < S.items.length) {
+        var it = S.items[i++], buf = it.buf;
+        c.send(JSON.stringify({ k: 'seg', id: it.id, init: it.init, len: buf.byteLength, a: it.a, b: it.b }));
+        for (var o = 0; o < buf.byteLength; o += CH) {
+          while (dc.bufferedAmount > 4 * 1048576) { await sleep(20); checkAlive(c, tok); if (st.fallback) throw new Error('fb'); }
+          c.send(buf.slice(o, o + CH).buffer);
+        }
+      } else if (S.error) throw S.error;
+      else if (S.done) break;
+      else await Promise.race([S.wait(), sleep(1000)]);
+    }
+    c.send(JSON.stringify({ k: 'end' }));
+    while (dc.bufferedAmount > 0) { await sleep(50); checkAlive(c, tok); }
+    return true;
+  }
+
+  /* =====================================================
+     YOUTUBE
+     Chacun lit la vidéo directement depuis YouTube : rien ne passe entre vous (fluide, qualité adaptative).
+     Seuls lecture, pause et position sont synchronisées.
+     - une action faite par une personne est envoyée aux autres (les actions du lecteur sont ignorées pendant 1,8 s après une synchro reçue)
+     - celui qui a ouvert le lien envoie sa position toutes les 3 s ; les autres ne se recalent que si l'écart dépasse 1,5 s
+       (jamais pendant le chargement, au plus une correction toutes les 4 s) pour éviter les saccades
+     ===================================================== */
+  var yt = { active: false, id: '', source: false, ready: false, pready: false, player: null, pend: null, gen: 0 };
+  var ytApplyUntil = 0, ytLastLocal = 0, ytLastCorr = 0, ytWant = false, ytPoll = null, ytApiP = null, ytTapTimer = null;
+  var DROP0 = { t: $('drop-title').textContent, x: $('drop-text').textContent };
+
+  function parseYt(s) {
+    s = (s || '').trim();
+    if (!s) return null;
+    if (/^[\w-]{11}$/.test(s)) return { id: s, start: 0 };
+    var u;
+    try { u = new URL(/^https?:\/\//i.test(s) ? s : 'https://' + s); } catch (e) { return null; }
+    var h = u.hostname.replace(/^(www|m|music)\./, ''), id = null;
+    if (h === 'youtu.be') id = u.pathname.split('/')[1];
+    else if (h === 'youtube.com' || h === 'youtube-nocookie.com') {
+      var m = u.pathname.match(/^\/(?:shorts|embed|live|v)\/([\w-]{11})/);
+      id = m ? m[1] : u.searchParams.get('v');
+    }
+    if (!id || !/^[\w-]{11}$/.test(id)) return null;
+    var t = u.searchParams.get('t') || u.searchParams.get('start') || '', sec = 0;
+    if (/^\d+s?$/.test(t)) sec = parseInt(t, 10);
+    else if (t) { var mm = t.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/); if (mm) sec = (+mm[1] || 0) * 3600 + (+mm[2] || 0) * 60 + (+mm[3] || 0); }
+    return { id: id, start: sec };
+  }
+  function loadYtApi() {
+    if (window.YT && window.YT.Player) return Promise.resolve();
+    if (ytApiP) return ytApiP;
+    ytApiP = new Promise(function (res, rej) {
+      var prev = window.onYouTubeIframeAPIReady, done = false;
+      window.onYouTubeIframeAPIReady = function () { done = true; try { if (prev) prev(); } catch (e) {} res(); };
+      var s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; s.async = true;
+      s.onerror = function () { ytApiP = null; rej(new Error('yt')); };
+      document.head.appendChild(s);
+      setTimeout(function () { if (!done) { ytApiP = null; rej(new Error('timeout')); } }, 12000);
+    });
+    return ytApiP;
+  }
+  // l'API est chargée en tâche de fond dès l'entrée dans la salle : le premier lien démarre plus vite
+  function warmYt() {
+    var go = function () { loadYtApi().catch(function () {}); };
+    if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 4000 }); else setTimeout(go, 1500);
+  }
+  function ytState() { try { return yt.player && yt.pready ? yt.player.getPlayerState() : -1; } catch (e) { return -1; } }
+  function ytCur() { try { return yt.ready ? yt.player.getCurrentTime() : (yt.pend ? yt.pend.time : 0); } catch (e) { return 0; } }
+  function ytPlaying() { var s = ytState(); return s === 1 || (s === 3 && ytWant); }
+  function armTap() {
+    clearTimeout(ytTapTimer);
+    ytTapTimer = setTimeout(function () {
+      if (yt.active && yt.ready && ytWant) { var s = ytState(); if (s !== 1 && s !== 3) $('tap').hidden = false; }
+    }, 2000);
+  }
+
+  var ytHost = 'https://www.youtube.com', ytAlt = false, ytLoadTimer = null;
+  // L'iframe est construite ici (et non par l'API) pour imposer l'envoi de l'adresse de la page à YouTube :
+  // sans cette adresse (« referrer »), YouTube répond par l'erreur 153.
+  function buildYtPlayer(id, start, gen) {
+    try { if (yt.player) yt.player.destroy(); } catch (e) {}
+    yt.player = null; yt.pready = false; yt.ready = false;
+    var q = 'enablejsapi=1&autoplay=0&controls=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&fs=0&start=' + Math.floor(start || 0);
+    if (/^https?:$/.test(location.protocol)) q += '&origin=' + encodeURIComponent(location.origin) + '&widget_referrer=' + encodeURIComponent(location.href.split('#')[0]);
+    var f = document.createElement('iframe');
+    f.src = ytHost + '/embed/' + id + '?' + q;
+    f.title = 'YouTube';
+    f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+    f.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+    f.setAttribute('frameborder', '0');
+    $('yt').textContent = ''; $('yt').appendChild(f);
+    yt.player = new YT.Player(f, {
+      events: {
+        onReady: function () { yt.pready = true; if (yt.active && gen === yt.gen) onYtLoaded(gen); },
+        onStateChange: onYtState,
+        onError: onYtError
+      }
+    });
+    clearTimeout(ytLoadTimer);
+    ytLoadTimer = setTimeout(function () {
+      if (yt.active && gen === yt.gen && !yt.ready) { addMsg('', 'Le lecteur YouTube ne répond pas. ' + ytHelp(), 'sys'); }
+    }, 12000);
+  }
+  function ytHelp() {
+    if (location.protocol === 'file:') return "Le site est ouvert comme un simple fichier : YouTube refuse ce mode (erreur 153). Mets le fichier sur un hébergement https gratuit (Netlify Drop, GitHub Pages ou Cloudflare Pages) et ouvre-le depuis ce lien.";
+    if (location.hostname === 'appassets.androidplatform.net') return "L'application n'envoie pas l'adresse de la page à YouTube (erreur 153). Ouvre le site depuis un navigateur via un lien https, ou fais ajouter un referrer dans l'application.";
+    return "YouTube refuse la lecture depuis cette adresse. Vérifie que la page est servie en https et sans l'en-tête Referrer-Policy no-referrer ou same-origin.";
+  }
+
+  function startYT(id, start, asSource, pend) {
+    if (!/^[\w-]{11}$/.test(String(id))) return;
+    // on quitte le mode fichier : envoi arrêté, réception ignorée, mémoire du lecteur libérée
+    if (localFile) { localFile = null; fileToken++; sending = {}; }
+    haveKey = '';
+    recvGen++; try { if (fileConn) fileConn.close(); } catch (e) {} fileConn = null;
+    resetVideo();
+    $('tap').hidden = true; $('drop').hidden = true; $('yt').hidden = false;
+    yt.active = true; yt.id = id; yt.source = !!asSource; yt.ready = false;
+    yt.pend = pend || { playing: false, time: start || 0 };
+    ytWant = !!yt.pend.playing; ytPoll = null; ytLastLocal = 0;
+    var gen = ++yt.gen;
+    ytAlt = false;
+    $('fname').textContent = 'YouTube';
+    loadYtApi().then(function () {
+      if (!yt.active || gen !== yt.gen) return;
+      ytApplyUntil = Date.now() + 2500;
+      if (yt.player && yt.pready) {                       // lecteur déjà prêt : on le réutilise (plus rapide)
+        yt.player.cueVideoById({ videoId: id, startSeconds: start || 0 });
+        onYtLoaded(gen);
+      } else {
+        ytAlt = false;
+        buildYtPlayer(id, start || 0, gen);
+      }
+    }, function () {
+      if (gen !== yt.gen) return;
+      addMsg('', "Impossible de charger YouTube. Vérifie ta connexion internet.", 'sys');
+      stopYT(true);
+    });
+  }
+  function onYtLoaded(gen) {
+    if (!yt.active || gen !== yt.gen) return;
+    yt.ready = true;
+    setTimeout(function () {
+      try { var t = yt.player.getVideoData().title; if (t && yt.active) $('fname').textContent = 'YouTube · ' + t; } catch (e) {}
+    }, 800);
+    if (yt.pend) { var p = yt.pend; yt.pend = null; applyYtState(p); }
+  }
+  function stopYT(quiet) {
+    if (!yt.active) return;
+    yt.active = false; yt.ready = false; yt.pready = false; yt.gen++;
+    try { if (yt.player) yt.player.destroy(); } catch (e) {}
+    yt.player = null; ytPoll = null; clearTimeout(ytTapTimer);
+    $('yt').textContent = ''; $('yt').hidden = true; $('tap').hidden = true;
+    if (!hasVideo) { setDrop(DROP0.t, DROP0.x, true); $('fname').textContent = "Aucune vidéo pour l'instant"; }
+  }
+
+  // état envoyé par un ami : on s'aligne
+  function applyYtState(d) {
+    if (!yt.active) return;
+    if (!yt.ready) { yt.pend = d; return; }
+    var p = yt.player, st = ytState(), cur = ytCur(), seeked = false;
+    ytApplyUntil = Date.now() + 1800;
+    ytWant = !!d.playing;
+    try {
+      if (Math.abs(cur - d.time) > 0.7) { p.seekTo(d.time, true); seeked = true; }
+      if (d.playing) { if (st !== 1 && st !== 3) { p.playVideo(); armTap(); } }
+      else if (seeked || st === 1 || st === 3) p.pauseVideo();
+    } catch (e) {}
+    ytPoll = null;
+  }
+  // action faite par une personne : envoyée à tout le monde
+  function ytEmit() {
+    if (!yt.active || !yt.ready) return;
+    ytLastLocal = Date.now(); ytPoll = null;
+    broadcast({ t: 'ytstate', id: yt.id, playing: ytPlaying(), time: ytCur() });
+  }
+  function onYtState(e) {
+    if (!yt.active) return;
+    var s = e.data;
+    if (s === 1) { ytWant = true; $('tap').hidden = true; keepAwake(); }
+    else if (s === 2) ytWant = false;
+    else if (s === 0 && isHost && queue.length) {
+      setTimeout(function () { if (yt.active && ytState() === 0 && queue.length) playNext(); }, 800);
+    }
+    if (s !== 1 && s !== 2) return;
+    if (Date.now() < ytApplyUntil) return;
+    ytEmit();
+  }
+  function onYtError(e) {
+    if (e.data === 153) {
+      if (!ytAlt && yt.active) {                       // premier échec : on réessaie une fois avec l'autre adresse de lecteur
+        ytAlt = true;
+        ytHost = ytHost.indexOf('nocookie') >= 0 ? 'https://www.youtube.com' : 'https://www.youtube-nocookie.com';
+        var g = ++yt.gen, at = ytCur(), id = yt.id;
+        if (!yt.pend) yt.pend = { playing: false, time: at };
+        setTimeout(function () { if (yt.active && g === yt.gen) buildYtPlayer(id, at, g); }, 150);
+        return;
+      }
+      addMsg('', 'Erreur YouTube 153. ' + ytHelp(), 'sys');
+      return;
+    }
+    var msgs = {
+      2: 'Lien YouTube invalide.',
+      5: 'Cette vidéo ne peut pas être lue par le lecteur.',
+      100: 'Vidéo introuvable ou privée.',
+      101: "Le propriétaire de cette vidéo interdit sa lecture sur d'autres sites.",
+      150: "Le propriétaire de cette vidéo interdit sa lecture sur d'autres sites."
+    };
+    addMsg('', msgs[e.data] || ('Erreur YouTube (' + e.data + ').'), 'sys');
+  }
+  // recalage doux : uniquement si l'écart est net, jamais pendant le chargement, et au plus une fois toutes les 4 s
+  function onYtHeartbeat(d) {
+    if (!yt.active || !yt.ready || yt.source || d.id !== yt.id) return;
+    var now = Date.now();
+    if (now < ytApplyUntil || now - ytLastLocal < 3500) return;
+    var st = ytState(), diff = ytCur() - d.time, p = yt.player;
+    try {
+      if (d.playing) {
+        ytWant = true;
+        if (st === 3) return;
+        if (st !== 1) { ytApplyUntil = now + 1500; p.playVideo(); armTap(); return; }
+        if (Math.abs(diff) > 1.5 && now - ytLastCorr > 4000) { ytLastCorr = now; ytApplyUntil = now + 1500; p.seekTo(d.time + 0.3, true); ytPoll = null; }
+      } else {
+        ytWant = false;
+        if (st === 1 || st === 3) { ytApplyUntil = now + 1500; p.pauseVideo(); }
+        if (Math.abs(diff) > 1.0 && now - ytLastCorr > 4000) { ytLastCorr = now; ytApplyUntil = now + 1500; p.seekTo(d.time, true); p.pauseVideo(); ytPoll = null; }
+      }
+    } catch (e) {}
+  }
+  setInterval(function () {
+    if (!yt.active || !yt.ready || !yt.source || !openConns().length || document.hidden) return;
+    broadcast({ t: 'yths', id: yt.id, playing: ytPlaying(), time: ytCur() });
+  }, 3000);
+  // saut de position fait avec la barre du lecteur YouTube (aucun événement dédié) : détecté par comparaison toutes les 0,5 s
+  setInterval(function () {
+    if (!yt.active || !yt.ready) return;
+    if (document.hidden) { ytPoll = null; return; }
+    var now = Date.now(), t = ytCur(), st = ytState();
+    var prev = ytPoll;
+    ytPoll = { t: t, at: now, p: st === 1 };
+    if (!prev || now < ytApplyUntil) return;
+    var exp = prev.t + (prev.p ? (now - prev.at) / 1000 : 0);
+    if (Math.abs(t - exp) > 1.2 && (st === 1 || st === 2 || st === 3)) ytEmit();
+  }, 500);
+
+  // fenêtre du lien
+  function openYtPanel() {
+    $('yt-err').textContent = ''; $('yt-stop').hidden = !yt.active;
+    $('ytmodal').hidden = false; $('yt-url').focus();
+  }
+  function closeYtPanel() { $('ytmodal').hidden = true; }
+  function submitYt() {
+    var p = parseYt($('yt-url').value);
+    if (!p) { $('yt-err').textContent = "Lien non reconnu. Colle le lien d'une vidéo YouTube (pas d'une playlist ou d'une chaîne)."; return; }
+    closeYtPanel(); $('yt-url').value = '';
+    startYT(p.id, p.start, true);
+    broadcast({ t: 'yt', id: p.id, start: p.start, name: myName });
+    addMsg('', "Vidéo YouTube ouverte. Appuie sur lecture : tout le monde sera synchronisé.", 'sys');
+  }
+  $('btn-yt').addEventListener('click', openYtPanel);
+  $('btn-yt-drop').addEventListener('click', openYtPanel);
+  $('yt-cancel').addEventListener('click', closeYtPanel);
+  $('yt-go').addEventListener('click', submitYt);
+  $('yt-url').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); submitYt(); } });
+  $('yt-stop').addEventListener('click', function () {
+    closeYtPanel(); stopYT(true);
+    broadcast({ t: 'ytstop', name: myName });
+    addMsg('', 'Vidéo YouTube arrêtée.', 'sys');
+  });
+  $('ytmodal').addEventListener('click', function (e) { if (e.target === this) closeYtPanel(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('ytmodal').hidden) closeYtPanel(); });
+
+  /* ---------- sous-titres ---------- */
+  function applySubs(raw) {
+    subsText = raw;
+    var vtt = 'WEBVTT\n\n' + raw.replace(/\r/g, '').replace(/^﻿/, '').replace(/^WEBVTT[^\n]*\n/, '').replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+    var url = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }));
+    Array.prototype.forEach.call(video.querySelectorAll('track'), function (t) { t.remove(); });
+    var tr = document.createElement('track');
+    tr.kind = 'subtitles'; tr.label = 'Sous-titres'; tr.default = true; tr.src = url;
+    video.appendChild(tr);
+    setTimeout(function () { if (video.textTracks[0]) video.textTracks[0].mode = 'showing'; }, 150);
+  }
+  function loadSubs(f) {
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      applySubs(String(r.result));
+      broadcast({ t: 'subs', text: subsText });
+      addMsg('', 'Sous-titres chargés et partagés.', 'sys');
+    };
+    r.readAsText(f);
+  }
+
+  /* ---------- accueil : prénom, création, invitation ---------- */
+  function readName() {
+    var n = $('name').value.trim();
+    if (!n) {
+      $('home-error').textContent = "Choisis ton prénom avant d'entrer dans la salle.";
+      $('name').focus();
+      return null;
+    }
+    try { localStorage.setItem('cad-name', n); } catch (e) {}
+    $('home-error').textContent = '';
+    return n;
+  }
+  function enterInviteMode(code) {
+    inviteMode = true;
+    $('code').value = code;
+    $('card-create').hidden = true;
+    $('field-code').hidden = true;
+    $('invite').hidden = false;
+    $('lede').hidden = true;
+    $('invite-code').textContent = code;
+    $('btn-join').textContent = 'Entrer dans la salle';
+    $('join-title').textContent = 'Choisis ton nom, puis entre';
+    $('name-label').textContent = 'Ton nom dans la salle';
+    setTimeout(function () { $('name').focus(); $('name').select(); }, 60);
+  }
+  function exitInviteMode() {
+    inviteMode = false;
+    $('card-create').hidden = false;
+    $('field-code').hidden = false;
+    $('invite').hidden = true;
+    $('lede').hidden = false;
+    $('btn-join').textContent = 'Rejoindre';
+    $('join-title').textContent = 'Rejoindre une salle';
+    $('name-label').textContent = 'Ton prénom';
+    $('code').value = '';
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  }
+
+  /* ---------- salle ---------- */
+  function backHome(msg) {
+    try { peer && peer.destroy(); } catch (e) {}
+    conns = []; peer = null;
+    document.body.classList.remove('in-room');
+    $('room').hidden = true; $('home').hidden = false;
+    $('home-error').textContent = msg || '';
+  }
+  function enterRoom() {
+    $('btn-queue').hidden = !isHost; $('fs-queue').hidden = !isHost;
+    if (!isHost) { queue = []; $('qpanel').hidden = true; } else renderQueue();
+    $('home').hidden = true; $('room').hidden = false;
+    document.body.classList.add('in-room');
+    $('room-code').textContent = roomCode;
+    warmYt();
+    updateStatus();
+  }
+  /* code de salle inchangé : option « Garder toujours le même code », mémorisée sur cet appareil */
+  var roomFixed = false, fixedTries = 0;
+  function savedCode() {
+    try { var c = localStorage.getItem('a2g-code') || ''; return /^[A-Z0-9]{6}$/.test(c) ? c : ''; } catch (e) { return ''; }
+  }
+  function saveCode(c) { try { localStorage.setItem('a2g-code', c); } catch (e) {} }
+  function syncFixedUi() {
+    var on = $('fixed-code').checked;
+    try { localStorage.setItem('a2g-fixed', on ? '1' : '0'); } catch (e) {}
+    if (on) { var c = savedCode(); if (!c) { c = genCode(); saveCode(c); } $('fixed-val').value = c; }
+    $('fixed-info').hidden = !on;
+  }
+  function cleanCode(v) { return String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); }
+  function createRoom(keep) {
+    if (!keep && $('fixed-code').checked) {        // code choisi par l'utilisateur : il doit faire 6 caractères
+      var typed = cleanCode($('fixed-val').value);
+      $('fixed-val').value = typed;
+      if (typed.length !== 6) { $('home-error').textContent = 'Ton code doit faire 6 caractères (lettres et chiffres).'; $('fixed-val').focus(); return; }
+    }
+    isHost = true;
+    if (!keep) {                                   // nouvelle demande de l'utilisateur
+      roomFixed = $('fixed-code').checked; fixedTries = 0;
+      roomCode = roomFixed ? cleanCode($('fixed-val').value) : genCode();
+      if (roomFixed) saveCode(roomCode);
+    } else if (!roomFixed) roomCode = genCode();   // code aléatoire déjà pris : on en tire un autre
+    startPeer(peerId(roomCode), function () {
+      enterRoom();
+      addMsg('', 'Salle créée. Envoie le code ' + roomCode + ' à ton ami.', 'sys');
+    });
+  }
+  function joinRoom(code) {
+    isHost = false; roomCode = code.toUpperCase();
+    joinedOnce = false; noReconnect = false; lastTry = Date.now();
+    startPeer(null, function () {
+      enterRoom();
+      setupConn(peer.connect(peerId(roomCode), { reliable: true }));
+    });
+  }
+
+  /* ---------- plein écran (vidéo + chat) ---------- */
+  function isFs() { return document.fullscreenElement === layout || document.webkitFullscreenElement === layout || pseudoFs; }
+  // téléphone : en plein écran, l'écran passe en paysage tout seul (Android/Chrome). Sur iPhone, le CSS fait pivoter la salle.
+  // Un seul mécanisme à la fois, pour éviter que la vidéo pivote puis revienne :
+  // 1) on demande le verrouillage en paysage au système ; 2) seulement si l'écran reste en portrait après cela, on fait pivoter la salle avec le CSS (classe « rot »).
+  var fsWas = false, orient = { want: false, settled: false, locked: false, tm: null };
+  function devicePortrait() {
+    try { var ty = screen.orientation && screen.orientation.type; if (ty) return ty.indexOf('portrait') === 0; } catch (e) {}
+    return window.innerHeight > window.innerWidth;
+  }
+  function applyRot() {
+    layout.classList.toggle('rot', !!(orient.want && orient.settled && pseudoFs && devicePortrait()));
+  }
+  // la salle ne pivote en paysage que si la vidéo est en paysage (largeur ≥ hauteur) ; une vidéo verticale reste en portrait
+  function videoLandscape() {
+    if (yt.active) return true;
+    if (hasVideo && video.videoWidth && video.videoHeight) return video.videoWidth >= video.videoHeight;
+    return true;
+  }
+  // si les dimensions de la vidéo ne sont connues qu'après coup (ou si la vidéo change), on réévalue en plein écran
+  video.addEventListener('loadedmetadata', function () {
+    /* pas de rotation en plein écran avec chat */
+  });
+  function setLandscape(on) {
+    on = on && videoLandscape();
+    clearTimeout(orient.tm);
+    orient.want = on; orient.settled = false;
+    if (!on) {
+      if (orient.locked) { try { screen.orientation.unlock(); } catch (e) {} orient.locked = false; }
+      applyRot(); return;
+    }
+    function settle() {
+      orient.settled = true;
+      // plein écran réel mais l'écran est resté en portrait : on passe en plein écran simulé et on pivote avec le CSS
+      if (orient.want && devicePortrait() && !pseudoFs && isFs()) {
+        pseudoFs = true;
+        try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {}
+        syncFs();
+      }
+      applyRot();
+    }
+    function finish(ok, delay) { orient.locked = !!ok; orient.tm = setTimeout(settle, delay); }
+    var p = null;
+    try {
+      if (window.matchMedia('(pointer: coarse)').matches && screen.orientation && screen.orientation.lock) p = screen.orientation.lock('landscape');
+    } catch (e) { p = null; }
+    if (p && p.then) p.then(function () { finish(true, 700); }, function () { finish(false, 0); });   // 700 ms : le temps que l'écran pivote vraiment
+    else finish(false, 0);
+  }
+  window.addEventListener('resize', applyRot);
+  window.addEventListener('orientationchange', function () { setTimeout(applyRot, 200); });
+  /* menu du haut (plein écran + chat) : s'affiche à l'entrée, se range derrière la flèche après quelques secondes, et s'ouvre à la demande */
+  var fsHideTm = null;
+  function armFsHide(ms) {
+    clearTimeout(fsHideTm);
+    fsHideTm = setTimeout(function () {
+      if (!isFs()) return;
+      if ($('sizebar').classList.contains('open')) { armFsHide(2500); return; }   // le panneau Taille est ouvert : on ne range pas le menu
+      fsMenu(false);
+    }, ms || 4000);
+  }
+  function fsMenu(open) {
+    clearTimeout(fsHideTm);
+    $('fsbar').classList.toggle('hide', !open);
+    $('fs-tab').setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) armFsHide(3500);
+  }
+  function syncFs() {
+    var on = isFs();
+    // plein écran avec chat (bouton du dessous) : l'écran ne pivote jamais, la vidéo garde son orientation
+    if (on !== fsWas) { fsWas = on; setLandscape(false); if (on) fsMenu(true); else { clearTimeout(fsHideTm); $('fsbar').classList.remove('hide'); } }
+    layout.classList.toggle('fs', on);
+    layout.classList.toggle('pfs', pseudoFs);
+    applyRot();
+    $('btn-full').textContent = on ? 'Quitter le plein écran' : 'Plein écran';
+    // le panneau taille/zoom est déplacé dans la scène en plein écran, puis remis à sa place
+    var sb = $('sizebar'), fm = $('fsmenu');
+    if (on && sb.parentNode !== fm) { fm.appendChild(sb); sb.classList.add('fs-panel'); }
+    else if (!on && sb.parentNode === fm) { sb.classList.remove('fs-panel', 'open'); layout.querySelector('.stage-col').appendChild(sb); }
+  }
+  function toggleFs() {
+    if (isFs()) {
+      if (pseudoFs) { pseudoFs = false; syncFs(); }
+      else (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      return;
+    }
+    var req = layout.requestFullscreen || layout.webkitRequestFullscreen;
+    if (req) {
+      var p;
+      try { p = req.call(layout); } catch (e) { pseudoFs = true; syncFs(); return; }
+      if (p && p.catch) p.catch(function () { pseudoFs = true; syncFs(); });
+    } else {
+      pseudoFs = true; syncFs();        // iPhone : plein écran simulé, le chat reste visible
+    }
+  }
+  document.addEventListener('fullscreenchange', syncFs);
+  document.addEventListener('webkitfullscreenchange', syncFs);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && pseudoFs) { pseudoFs = false; syncFs(); } });
+  function toggleChat() {
+    var hide = layout.classList.toggle('nochat');
+    $('btn-chat').textContent = hide ? 'Afficher le chat' : 'Masquer le chat';
+    $('fs-chat').textContent = hide ? 'Afficher le chat' : 'Masquer le chat';
+  }
+
+  /* ---------- taille de la zone de chat ---------- */
+  var CHAT_SIZES = ['Petit', 'Moyen', 'Grand', 'Très grand'], chatLvl = 1;
+  try { var sv = parseInt(localStorage.getItem('samaraf-chatsize'), 10); if (sv >= 0 && sv < CHAT_SIZES.length) chatLvl = sv; } catch (e) {}
+  function setChatLvl(n) {
+    chatLvl = n;
+    layout.setAttribute('data-chat', String(n));
+    $('chatsize').value = String(n);
+    try { localStorage.setItem('samaraf-chatsize', String(n)); } catch (e) {}
+  }
+  setChatLvl(chatLvl);
+  $('chatsize').addEventListener('change', function (e) {
+    if (layout.classList.contains('nochat')) toggleChat();                 // chat masqué : choisir une taille le réaffiche
+    setChatLvl(parseInt(e.target.value, 10));
+  });
+
+  /* ---------- interface ---------- */
+  $('btn-create').addEventListener('click', function () {
+    var n = readName(); if (!n) return;
+    myName = n; createRoom();
+  });
+  $('btn-join').addEventListener('click', function () {
+    var n = readName(); if (!n) return;
+    var code = $('code').value.trim();
+    if (code.length < 6) { $('home-error').textContent = 'Entre le code à 6 caractères.'; $('code').focus(); return; }
+    myName = n; joinRoom(code);
+  });
+  $('invite-own').addEventListener('click', exitInviteMode);
+  try { $('fixed-code').checked = localStorage.getItem('a2g-fixed') === '1'; } catch (e) {}
+  syncFixedUi();
+  $('fixed-code').addEventListener('change', syncFixedUi);
+  $('fixed-val').addEventListener('input', function (e) {
+    var c = cleanCode(e.target.value); if (c !== e.target.value) e.target.value = c;
+    if (c.length === 6) saveCode(c);
+  });
+  $('fixed-val').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('btn-create').click(); });
+  $('fixed-new').addEventListener('click', function () { var c = genCode(); saveCode(c); $('fixed-val').value = c; });
+  $('code').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('btn-join').click(); });
+  $('name').addEventListener('keydown', function (e) { if (e.key === 'Enter' && inviteMode) $('btn-join').click(); });
+  $('btn-pick').addEventListener('click', function () { $('file').click(); });
+  $('btn-change').addEventListener('click', function () { $('file').click(); });
+  $('btn-queue').addEventListener('click', toggleQueue);
+  $('fs-queue').addEventListener('click', toggleQueue);
+  $('q-add').addEventListener('click', function () { $('qfile').click(); });
+  $('q-close').addEventListener('click', function () { $('qpanel').hidden = true; });
+  $('q-clear').addEventListener('click', function () { queue = []; renderQueue(); });
+  $('qfile').addEventListener('change', function (e) { addToQueue(e.target.files); e.target.value = ''; });
+  $('btn-sub').addEventListener('click', function () { $('subfile').click(); });
+  $('btn-sync').addEventListener('click', function () {
+    if (yt.active) { ytEmit(); addMsg('', 'Ta position a été envoyée à tout le monde.', 'sys'); return; }
+    if (!hasVideo) return;
+    applyingUntil = 0;
+    emit(true);
+    addMsg('', 'Ta position a été envoyée à tout le monde.', 'sys');
+  });
+  $('file').addEventListener('change', function (e) { loadFile(e.target.files[0]); e.target.value = ''; });
+  $('subfile').addEventListener('change', function (e) { loadSubs(e.target.files[0]); e.target.value = ''; });
+  $('btn-tap').addEventListener('click', function () {
+    markUser(); $('tap').hidden = true;
+    if (yt.active) { if (yt.ready) { ytApplyUntil = Date.now() + 1500; try { yt.player.playVideo(); } catch (e) {} } return; }
+    video.play().catch(function () {});
+  });
+  $('fit').addEventListener('change', function (e) { video.style.objectFit = e.target.value; });
+  $('zoom').addEventListener('input', function (e) {
+    video.style.transform = 'scale(' + (e.target.value / 100) + ')';
+    $('yt').style.transform = video.style.transform;
+    $('zoom-val').textContent = e.target.value + ' %';
+  });
+  $('zoom-val').addEventListener('dblclick', function () { $('zoom').value = 100; $('zoom').dispatchEvent(new Event('input')); });
+  $('btn-chat').addEventListener('click', toggleChat);
+  $('fs-chat').addEventListener('click', toggleChat);
+  $('fs-size').addEventListener('click', function () { $('sizebar').classList.toggle('open'); });
+  $('fs-tab').addEventListener('click', function () { fsMenu($('fsbar').classList.contains('hide')); });
+  // tant que l'utilisateur touche au menu, on repousse le rangement automatique
+  ['pointerdown', 'pointermove', 'input', 'focusin'].forEach(function (ev) {
+    $('fsmenu').addEventListener(ev, function () { if (!$('fsbar').classList.contains('hide')) armFsHide(4000); });
+  });
+  $('btn-full').addEventListener('click', toggleFs);
+  $('fs-exit').addEventListener('click', toggleFs);
+  $('btn-opts').addEventListener('click', function () { $('sizebar').classList.toggle('show'); });
+  $('btn-copy').addEventListener('click', function () {
+    // dans l'application Android, l'adresse interne n'est pas partageable : on copie seulement le code
+    var inApp = location.hostname === 'appassets.androidplatform.net';
+    var link = inApp ? roomCode : location.href.split('#')[0] + '#' + roomCode, btn = $('btn-copy');
+    function ok(t) { btn.textContent = t; setTimeout(function () { btn.textContent = 'Copier le lien'; }, 1800); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(function () { ok(inApp ? 'Code copié' : 'Lien copié'); }, function () { ok('Code : ' + roomCode); });
+    else ok('Code : ' + roomCode);
+  });
+
+  /* ---------- chat et emotes ---------- */
+  var EMOTES = [
+    { tab: '😀', list: ['😀','😂','🤣','😊','😍','😘','😎','🤩','😅','😉','🥹','😭','😢','😡','🤯','😱','🥶','🤔','🙄','😴','🤤','😏','🥳','😇'] },
+    { tab: '👍', list: ['👍','👎','👏','🙌','🙏','💪','👀','🤝','✌️','🤞','👌','🤌','🫶','🤙','🖐️','☝️','🫡','🤦','🤷','🕺','💃','🙈','🙉','🙊'] },
+    { tab: '❤️', list: ['❤️','🧡','💛','💚','💙','💜','🖤','💔','🔥','✨','💯','🎉','🎬','🍿','🥤','🍕','⭐','💀','👻','😈','🌹','☕','⚡','🚀'] }
+  ];
+  function showTab(i) {
+    var tabs = $('ptabs').children;
+    for (var k = 0; k < tabs.length; k++) tabs[k].classList.toggle('on', k === i);
+    var grid = $('pgrid');
+    grid.textContent = '';
+    EMOTES[i].list.forEach(function (e) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.textContent = e; b.setAttribute('aria-label', e);
+      b.addEventListener('click', function () { insertEmote(e); });
+      grid.appendChild(b);
+    });
+  }
+  function insertEmote(e) {
+    var inp = $('msg'), s = inp.selectionStart == null ? inp.value.length : inp.selectionStart, en = inp.selectionEnd == null ? s : inp.selectionEnd;
+    inp.value = inp.value.slice(0, s) + e + inp.value.slice(en);
+    var pos = s + e.length;
+    inp.dispatchEvent(new Event('input'));
+    if (!window.matchMedia('(pointer: coarse)').matches) { inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (x) {} }
+  }
+  EMOTES.forEach(function (g, i) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = g.tab;
+    b.addEventListener('click', function () { showTab(i); });
+    $('ptabs').appendChild(b);
+  });
+  showTab(0);
+  function renderTyping() {
+    var now = Date.now(), names = [];
+    Object.keys(typers).forEach(function (k) { if (now - typers[k].at > 4000) delete typers[k]; else names.push(typers[k].name); });
+    var t = '';
+    if (names.length === 1) t = names[0] + " est en train d'écrire…";
+    else if (names.length === 2) t = names[0] + ' et ' + names[1] + " sont en train d'écrire…";
+    else if (names.length > 2) t = 'Plusieurs personnes écrivent…';
+    $('typing').textContent = t;
+  }
+  setInterval(renderTyping, 1000);
+  $('msg').addEventListener('input', function () {
+    var now = Date.now();
+    if (!this.value.trim()) {
+      if (lastTypingSent) { lastTypingSent = 0; broadcast({ t: 'typing', cid: myCid, off: true }); }
+      return;
+    }
+    if (now - lastTypingSent > 2000) { lastTypingSent = now; broadcast({ t: 'typing', cid: myCid, name: myName }); }
+  });
+  $('btn-emoji').addEventListener('click', function () { $('picker').hidden = !$('picker').hidden; });
+  $('send').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var inp = $('msg'), text = inp.value.trim();
+    if (!text) return;
+    // invité sans lien avec l'hôte : le message ne partirait nulle part, on le dit au lieu de faire semblant
+    if (!isHost && !openConns().length) {
+      addMsg('', "Tu n'es pas connecté au salon : message non envoyé. Reconnexion en cours…", 'sys');
+      lastTry = 0; guestLink();
+      return;
+    }
+    var mid = myCid + '-' + (++msgSeq) + '-' + Date.now().toString(36);
+    seenMids[mid] = 1;
+    if (isHost) pushHistory(mid, myName, text, myCid);
+    addMsg(myName, text, 'me');
+    broadcast({ t: 'chat', name: myName, text: text, cid: myCid, mid: mid });
+    lastTypingSent = 0;
+    inp.value = '';
+    $('picker').hidden = true;
+  });
+
+  var stage = $('stage');
+  ['dragenter', 'dragover'].forEach(function (ev) { stage.addEventListener(ev, function (e) { e.preventDefault(); stage.classList.add('dragover'); }); });
+  ['dragleave', 'drop'].forEach(function (ev) { stage.addEventListener(ev, function (e) { e.preventDefault(); stage.classList.remove('dragover'); }); });
+  stage.addEventListener('drop', function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files[0];
+    if (f && (f.type.indexOf('video') === 0 || /\.mkv$/i.test(f.name))) loadFile(f);
+  });
+
+  if (window.__theme) window.__theme.bind(broadcast, openConns, function (t) { addMsg('', t, 'sys'); }, function () { return isHost; });
+
+  /* ---------- clavier du téléphone ----------
+     Deux cas :
+     1) le clavier redimensionne la page (navigateur, ou appli en « adjustResize ») : la salle suit la hauteur visible ;
+     2) le clavier se pose par-dessus sans rien redimensionner (WebView d'une appli) : on le détecte au focus du champ
+        et on réserve en bas une hauteur égale à celle du clavier (mesurée si possible, sinon estimée). */
+  (function () {
+    var vv = window.visualViewport, root = document.documentElement.style;
+    var baseH = window.innerHeight, focused = false, settled = false, vkH = 0, tSettle = null, tBlur = null, sawResize = false;
+    function closeKb() {                                                   // le clavier est fermé : le champ perd le focus et la mise en page revient
+      focused = false; settled = false; sawResize = false; vkH = 0;
+      try { if (isText(document.activeElement)) document.activeElement.blur(); } catch (e) {}
+      fit();
+    }
+    // PC (grand écran + souris) : pas de clavier virtuel, donc aucune hauteur n'est réservée et la salle ne rétrécit pas
+    function isDesk() { try { return window.matchMedia('(min-width: 861px) and (pointer: fine)').matches; } catch (e) { return false; } }
+    function isText(el) { return el && el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search' || el.type === 'url'); }
+    function fit() {
+      var h = vv ? vv.height : window.innerHeight, t = vv ? vv.offsetTop : 0;
+      var zoomed = !!(vv && vv.scale > 1.05), cur = Math.min(window.innerHeight, h);
+      if (!focused && !zoomed) baseH = Math.max(cur, 1);                  // hauteur sans clavier
+      var resized = baseH - cur > 120, pad = 0;
+      if (isDesk()) { resized = false; sawResize = false; }
+      if (focused && resized) sawResize = true;
+      else if (focused && sawResize && !resized) { closeKb(); return; }     // la page a retrouvé sa taille : clavier fermé (touche retour)
+      if (!isDesk() && focused && settled && !zoomed && !resized) pad = vkH > 0 ? vkH : Math.round(baseH * 0.42);
+      root.setProperty('--vvh', Math.round(h) + 'px');
+      root.setProperty('--vvt', Math.round(t) + 'px');
+      root.setProperty('--kbpad', pad + 'px');
+      // plein écran réel : le clavier recouvre le bas de l'écran sans redimensionner la page → on mesure ce qu'il cache
+      root.setProperty('--kbov', ((!isDesk() && !zoomed) ? Math.max(0, Math.round(window.innerHeight - h - t)) : 0) + 'px');
+      var kb = !zoomed && (focused || resized);
+      if (isDesk()) { root.setProperty('--vvh', '100dvh'); root.setProperty('--vvt', '0px'); kb = false; }
+      if (kb && !document.body.classList.contains('kb') && isFs()) fsMenu(false);   // le clavier s'ouvre : le menu se range pour laisser la place
+      document.body.classList.toggle('kb', kb);
+      if (kb) { var m = $('msgs'); m.scrollTop = m.scrollHeight; }
+    }
+    document.addEventListener('focusin', function (e) {
+      if (!isText(e.target)) return;
+      clearTimeout(tBlur); clearTimeout(tSettle);
+      focused = true; settled = false; fit();
+      tSettle = setTimeout(function () { settled = true; fit(); }, 600);   // on laisse au clavier le temps de redimensionner la page
+    });
+    document.addEventListener('focusout', function (e) {
+      if (!isText(e.target)) return;
+      clearTimeout(tBlur);
+      tBlur = setTimeout(function () { if (!isText(document.activeElement)) { focused = false; settled = false; fit(); } }, 250);
+    });
+    if (vv) { vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); }
+    window.addEventListener('resize', fit);
+    window.addEventListener('orientationchange', function () { setTimeout(function () { if (!focused) baseH = window.innerHeight; fit(); }, 300); });
+    try {                                                                  // hauteur exacte du clavier quand le système la fournit
+      if (navigator.virtualKeyboard) navigator.virtualKeyboard.addEventListener('geometrychange', function () {
+        var prev = vkH; vkH = Math.round(navigator.virtualKeyboard.boundingRect.height || 0);
+        if (prev > 0 && vkH === 0 && focused) closeKb(); else fit();
+      });
+    } catch (e) {}
+    fit();
+  })();
+
+  /* ---------- démarrage ---------- */
+  try { var saved = localStorage.getItem('cad-name'); if (saved) $('name').value = saved; } catch (e) {}
+  var h = (location.hash || '').replace('#', '').toUpperCase();
+  if (/^[A-Z0-9]{6}$/.test(h)) enterInviteMode(h);
+})();
+</script>
+</body>
+</html>
